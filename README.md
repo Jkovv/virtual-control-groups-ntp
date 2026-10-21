@@ -8,13 +8,19 @@ from NTP's CEBS database only.
 
 **Headline result: with historical controls matched on species, strain, sex,
 study design, route, vehicle and laboratory, a virtual control group reproduces
-the concurrent-control significance conclusion for 77% of 26,118 study x sex x
-endpoint units from 1,120 NTP studies (Cohen's kappa 0.50). Three quarters of the
+the concurrent-control significance conclusion for 78% of 25,243 study x sex x
+endpoint units from 1,113 NTP studies (Cohen's kappa 0.52). Three quarters of the
 disagreements are findings that are significant against the VCG but not against
 the concurrent control. Agreement is far from uniform: 90% for non-neoplastic
-lesion incidences, 81% for neoplasm incidences, but only 60-70% for clinical
+lesion incidences, 81% for neoplasm incidences, but only 60-73% for clinical
 pathology, organ weights and body weights, where a constant "not significant"
 verdict would do about as well.**
+
+**Three pre-specified improvements were then tested on held-out studies
+(`docs/analysis_plan.md`). Body-weight matching and ANCOVA helped a little,
+whole-group sampling and Tarone's test hurt, and the one large gain, hierarchical
+borrowing in a partial VCG, turned out on a post-hoc check to come from dropping
+the virtual animals rather than from borrowing.**
 
 ![Headline figure](results/figures/headline_agreement.png)
 
@@ -45,7 +51,14 @@ have led to the same answer as the real control group did.
    test (Bailer-Portier with Bieler-Williams variance, one-sided) for neoplasm
    incidences in 2-year studies. Each comparison is run once against the real
    control and once against each VCG.
-5. **Evaluation.** An endpoint is "significant" if any dose group is. Agreement is
+5. **Pre-dosing body weight** is a matching covariate, not an endpoint. It is
+   measured before any treatment, so a "treatment effect" on it can only be
+   chance or a mismatch between the control groups; in the first version of this
+   analysis it was the single worst endpoint (47% agreement), which flattered
+   nothing and measured only the mismatch. It is now used for matching and as an
+   ANCOVA covariate instead, and dropped from the evaluated endpoints for every
+   method, including the baseline.
+6. **Evaluation.** An endpoint is "significant" if any dose group is. Agreement is
    the share of endpoints with the same conclusion; a *false positive* is
    significant against the VCG only, a *false negative* significant against the
    concurrent control only. Rates are averaged over draws within an endpoint, then
@@ -66,12 +79,12 @@ share of concurrent-nonsignificant endpoints also nonsignificant with the VCG.
 |---|---:|---:|---:|---:|---:|---:|
 | Non-neoplastic lesions (Fisher, 3-month) | 3,085 | **0.90** | 0.58 | 0.79 | 0.93 | 0.85 |
 | Neoplasms (poly-3, 2-year) | 15,409 | **0.81** | 0.84 | 0.41 | 0.65 | 0.84 |
+| In-life body weight | 1,923 | 0.73 | 0.57 | 0.42 | 0.89 | 0.51 |
 | Terminal body weight | 699 | 0.70 | 0.55 | 0.42 | 0.85 | 0.58 |
-| Organ weights | 1,283 | 0.68 | 0.67 | 0.37 | 0.78 | 0.63 |
-| In-life body weight | 2,798 | 0.65 | 0.59 | 0.33 | 0.88 | 0.49 |
-| Hematology | 2,051 | 0.62 | 0.67 | 0.29 | 0.81 | 0.53 |
+| Organ weights | 1,283 | 0.68 | 0.67 | 0.37 | 0.79 | 0.63 |
+| Hematology | 2,051 | 0.62 | 0.67 | 0.28 | 0.81 | 0.52 |
 | Clinical chemistry | 793 | 0.60 | 0.63 | 0.25 | 0.82 | 0.47 |
-| **All endpoints** | 26,118 | **0.77** | 0.73 | 0.50 | 0.80 | 0.76 |
+| **All endpoints** | 25,243 | **0.78** | 0.72 | 0.52 | 0.80 | 0.78 |
 
 Two things stand out. First, the raw agreement for continuous endpoints is no
 better than the trivial baseline of always calling the endpoint non-significant;
@@ -82,32 +95,24 @@ are rare in both groups; for neoplasms the VCG misses a third of the
 concurrent-significant sites (sensitivity 0.65), partly because the concurrent
 poly-3 comparison is itself borderline for many rare tumours.
 
-### False positives dominate, and the pre-dosing body weight shows why
+### False positives dominate
 
-Across all units, 17% are significant only against the VCG and 5% only against
-the concurrent control. The clearest diagnostic is the **initial body weight**,
-measured before any dosing: the concurrent comparison is significant for 5% of
-units (chance level), the VCG comparison for about half. Historical animals of
-the same strain, sex, laboratory and route simply do not weigh the same as the
-animals in the current study, because age at arrival, supplier and the decade
-differ, and nothing in the public metadata lets one match on those. The same
-mechanism inflates differences in all body-weight-related endpoints and in
-clinical pathology (creatinine, bile acids, urea nitrogen, MCHC and reticulocytes
-have the lowest agreement among the continuous endpoints, 49-56%).
-
-In a separate check, the concurrent control group differed significantly (Welch
-test) from its own virtual replacement in 21-47% of draws depending on domain and
-matching level, which is the direct measure of the same problem.
+Across all units, 16% are significant only against the VCG and 6% only against
+the concurrent control. Among the continuous endpoints the lowest agreement is
+for creatinine, urea nitrogen, MCHC, bile acids and reticulocytes (50-55%). In a
+separate check, the concurrent control group differed significantly (Welch test)
+from its own virtual replacement in 21-45% of draws depending on domain and
+matching level. The next section explains why.
 
 ### Matching strictness
 
 | Level | Criteria added | Units with a pool | Agreement | Kappa |
 |---|---|---:|---:|---:|
-| L0 | species, strain, sex, design | 35,729 (100%) | 0.73 | 0.43 |
-| L1 | + route | 35,397 (99%) | 0.74 | 0.45 |
-| L2 | + vehicle | 32,809 (92%) | 0.76 | 0.47 |
-| L3 | + laboratory | 26,118 (73%) | 0.77 | 0.50 |
-| L4 | + start year within 3 years | 21,464 (60%) | 0.79 | 0.53 |
+| L0 | species, strain, sex, design | 34,570 (100%) | 0.74 | 0.45 |
+| L1 | + route | 34,247 (99%) | 0.75 | 0.47 |
+| L2 | + vehicle | 31,727 (92%) | 0.77 | 0.49 |
+| L3 | + laboratory | 25,243 (73%) | 0.78 | 0.52 |
+| L4 | + start year within 3 years | 20,755 (60%) | 0.80 | 0.55 |
 
 Each criterion helps a little (6 points of agreement from L0 to L4, mostly by
 removing false positives) and costs coverage: at the strictest level 40% of units
@@ -118,19 +123,19 @@ have no pool of sufficient size. Laboratory is the single most useful criterion.
 ### Partial virtual control groups
 
 Keeping half of the concurrent control animals and replacing the other half
-raises agreement from 0.77 to 0.86 (kappa 0.50 to 0.67) at the same matching
-level and halves the false positive share (17% to 9%), while coverage improves
-because a smaller pool suffices. This is the most practically interesting
-configuration in these data: it reduces animals by a quarter of the control
-group and keeps a concurrent anchor.
+raises agreement from 0.78 to 0.87 (kappa 0.52 to 0.68) at the same matching
+level and almost halves the false positive share (16% to 9%), while coverage
+improves because a smaller pool suffices. The post-hoc check below shows that
+most of this gain is not borrowing: simply analysing the kept half on its own,
+with no virtual animals at all, does better still.
 
 ### Drift
 
 With pools restricted to historical studies a given number of years away (at
-matching level L2), agreement falls from 0.78 for studies within 2 years to 0.72
-for studies 11-20 years apart, and the false positive share rises from 17% to
-23%. The decline is steepest for in-life body weight (0.68 to 0.51) and clinical
-chemistry (0.63 to 0.52); lesion incidences are flat.
+matching level L2), agreement falls from 0.79 for studies within 2 years to 0.74
+for studies 11-20 years apart, and the false positive share rises from 16% to
+21%. The decline is steepest for in-life body weight (0.75 to 0.59) and clinical
+chemistry (0.63 to 0.53); lesion incidences are flat.
 
 ![Drift](results/figures/agreement_vs_time_gap.png)
 
@@ -138,10 +143,10 @@ chemistry (0.63 to 0.52); lesion incidences are flat.
 
 Most suitable are non-neoplastic lesions with clear treatment-related
 incidences (nasal and skin lesions in inhalation and dermal studies, liver
-hypertrophy and necrosis, thymus atrophy: 97-100% agreement) and common tumours
-with stable background rates. Least suitable are the pre-dosing body weight (47%),
-creatinine, bile acids, urea nitrogen, albumin, MCHC, reticulocytes, platelets
-and the leukaemia incidences recorded in individual lymph nodes (49-61%).
+hypertrophy and necrosis, thymus atrophy: 99-100% agreement) and common tumours
+with stable background rates. Least suitable are creatinine, urea nitrogen,
+MCHC, bile acids, reticulocytes, albumin, hematocrit and platelets, and the
+leukaemia incidences recorded in individual lymph nodes (50-60%).
 
 ![Endpoint suitability](results/figures/endpoint_suitability.png)
 
@@ -151,12 +156,212 @@ and the leukaemia incidences recorded in individual lymph nodes (49-61%).
   constant "no effect" verdict on raw agreement. It is informative (kappa
   0.25-0.42) but not reliable.
 * Stricter matching on the variables available publicly improves things only
-  modestly; the missing covariates (age, supplier, initial body weight, fasting,
-  analyser) are likely to matter more than the ones we have.
+  modestly; the missing covariates (age, supplier, fasting state, analyser) are
+  likely to matter more than the ones we have. Pre-dosing body weight, the one
+  such covariate that is public, is now used for matching and helps only a
+  little, which is consistent with that reading.
 * The neoplasm result looks good on raw agreement and poor on sensitivity.
 * Coverage and strictness trade off: a VCG that is well matched is often not
   available at all.
+* Of the three pre-specified improvements, one helped a little (body-weight
+  matching, +0.009 kappa, and with ANCOVA +0.046 on weight endpoints), two hurt
+  (whole-group sampling, Tarone's test), and the one large gain (hierarchical
+  borrowing in a partial VCG, +0.186 kappa) is matched by simply analysing the
+  kept concurrent half with no borrowing at all.
+* Nothing here closed the gap for clinical chemistry and hematology, the two
+  domains with the largest between-study variance.
 
+
+## Why do full VCGs produce false positives?
+
+A treated group and its concurrent control share everything specific to the
+study: the animal shipment and its age, the diet batch, the necropsy days, the
+analyser and its calibration, the pathologist. A virtual control group built
+from other studies shares none of that, so the between-study offset of the
+current study enters the comparison as if it were a treatment effect.
+
+In numbers: let sigma^2 be the variance between control animals within a study
+and tau^2 the variance of control-group means between matched studies. The share
+tau^2 / (tau^2 + sigma^2) was estimated within strata of studies that match each
+other at level L3, from 1,180 stratum x endpoint combinations with at least three
+control groups (`results/tables/between_study_variance.csv`):
+
+| Endpoint domain | Strata x endpoints | Between-study share, median (IQR) | Implied false positives, individual sampling | Implied, one whole historical group | Observed, individual sampling |
+|---|---:|---|---:|---:|---:|
+| Terminal body weight | 120 | 0.20 (0.06-0.36) | 0.16 | 0.27 | 0.22 |
+| In-life body weight | 308 | 0.22 (0.10-0.37) | 0.18 | 0.30 | 0.22 |
+| Organ weights | 232 | 0.25 (0.09-0.44) | 0.20 | 0.33 | 0.26 |
+| Clinical chemistry | 141 | 0.42 (0.21-0.64) | 0.29 | 0.48 | 0.33 |
+| Hematology | 379 | 0.43 (0.16-0.71) | 0.29 | 0.48 | 0.33 |
+
+The two "implied" columns are what a two-sided t test at 5% of one treated group
+against a virtual control group of 10 animals rejects when there is no treatment
+effect and the test ignores tau^2. They are closed-form, checked against
+simulation in `tests/test_methods.py`, and they contain no information from the
+agreement analysis. They land close to the observed false positive share of the
+full VCG (last column) and rank the domains in the same order as the observed
+agreement: body weights best, clinical chemistry and hematology worst.
+
+Within a domain the spread is wide. In hematology the between-study share runs
+from 0.06 for eosinophils to 0.89 for reticulocytes; in clinical chemistry from
+0.20 for creatine kinase to 0.68 for urea nitrogen. The endpoints at the top of
+that list are exactly the ones at the bottom of the suitability figure.
+
+Two predictions follow, and the comparison below tests both. Sampling whole
+historical groups should be *worse* than sampling individuals, because a single
+borrowed group carries its own offset instead of averaging several away. And a
+method that models tau^2 instead of ignoring it should remove the excess false
+positives.
+
+## Three pre-specified improvements
+
+The three changes below were specified, with their settings and the rule for
+calling one helpful, in `docs/analysis_plan.md`, committed before any of them was
+run. Target studies that started before 1990 are the development set (904
+studies); the 334 studies from 1990 on are held out and are the basis of every
+number in this section. All methods use matching level L3 and 20 draws.
+
+1. **Body-weight matching** (Gurjanov et al. 2024): historical animals are drawn
+   with probability proportional to the normal density of their pre-dosing body
+   weight under the target study's pre-dosing distribution, within +/- 2 SD. For
+   body weight and organ weight endpoints there is also an **ANCOVA** variant
+   with pre-dosing body weight as covariate.
+2. **Whole-group sampling**: intact historical control groups are added until the
+   VCG is large enough, instead of sampling individual animals.
+3. **Hierarchical borrowing**: for continuous endpoints a random-effects model of
+   the historical control group means, compared against the meta-analytic
+   predictive distribution of a new study's control mean; for the partial VCG a
+   robust MAP prior (Neuenschwander et al. 2010; Schmidli et al. 2014) combined
+   with the kept concurrent half. For neoplasms, Tarone's (1982) trend test with
+   the historical rates as a beta-binomial prior, against a Cochran-Armitage
+   trend test as its baseline.
+
+### All methods side by side (held-out studies)
+
+Coverage differs between methods, so the columns are not paired; the paired
+comparisons are in the next table. "Trivial" is the agreement of always saying
+"not significant". The last column is the share of draws in which the real
+concurrent control differs from its own replacement (Welch test).
+
+| Method | Mode | Units | Agreement | Trivial | Kappa | Sensitivity | Specificity | False positives | Concurrent differs |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Current method | full | 15,953 | 0.78 | 0.70 | 0.53 | 0.82 | 0.77 | 0.16 | 0.33 |
+| Body-weight matched | full | 12,863 | 0.80 | 0.70 | 0.57 | 0.81 | 0.80 | 0.14 | 0.30 |
+| Body-weight matched + ANCOVA | full | 2,114 | 0.74 | 0.51 | 0.48 | 0.86 | 0.63 | 0.19 | 0.28 |
+| Whole historical groups | full | 14,046 | 0.77 | 0.70 | 0.52 | 0.84 | 0.74 | 0.18 | 0.45 |
+| Hierarchical (MAP) | full | 4,093 | 0.72 | 0.58 | 0.39 | 0.49 | 0.88 | 0.07 | 0.10 |
+| Tarone, beta-binomial prior | full | 7,506 | 0.89 | 0.92 | 0.44 | 0.65 | 0.91 | 0.08 | - |
+| Current method | partial | 18,958 | 0.86 | 0.70 | 0.68 | 0.84 | 0.87 | 0.09 | - |
+| Body-weight matched | partial | 17,802 | 0.87 | 0.69 | 0.70 | 0.84 | 0.88 | 0.08 | - |
+| Body-weight matched + ANCOVA | partial | 3,070 | 0.82 | 0.51 | 0.64 | 0.86 | 0.78 | 0.11 | - |
+| Whole historical groups | partial | 14,062 | 0.82 | 0.70 | 0.60 | 0.85 | 0.80 | 0.14 | - |
+| Hierarchical (robust MAP) | partial | 4,093 | 0.89 | 0.58 | 0.77 | 0.85 | 0.92 | 0.05 | - |
+| Tarone, beta-binomial prior | partial | 7,506 | 0.90 | 0.92 | 0.50 | 0.72 | 0.92 | 0.08 | - |
+| *Kept concurrent half alone (post-hoc)* | partial | 18,958 | 0.90 | 0.70 | 0.77 | 0.84 | 0.93 | 0.05 | - |
+
+### Did they help? (paired, same endpoints, held-out studies)
+
+Kappa change against the current method on exactly the endpoints both can serve,
+with a 95% interval from a bootstrap over studies. "Helped" needs a gain of at
+least 0.05 and an interval excluding zero.
+
+| Method | Mode | Endpoints | Kappa change (95% CI) | Verdict |
+|---|---|---:|---|---|
+| Body-weight matched | full | 12,863 | +0.009 (+0.004 to +0.015) | no clear difference |
+| Body-weight matched | partial | 17,802 | +0.009 (+0.004 to +0.014) | no clear difference |
+| Body-weight matched + ANCOVA | full | 2,114 | +0.046 (+0.022 to +0.071) | no clear difference |
+| Body-weight matched + ANCOVA | partial | 3,070 | +0.011 (-0.008 to +0.028) | no clear difference |
+| Whole historical groups | full | 14,046 | -0.031 (-0.038 to -0.024) | **hurt** |
+| Whole historical groups | partial | 14,062 | -0.105 (-0.115 to -0.095) | **hurt** |
+| Hierarchical (MAP) | full | 4,091 | +0.011 (-0.031 to +0.050) | no clear difference |
+| Hierarchical (robust MAP) | partial | 4,093 | +0.186 (+0.161 to +0.212) | **helped** |
+| Tarone vs Cochran-Armitage | full | 7,506 | -0.089 (-0.127 to -0.054) | **hurt** |
+| Tarone vs Cochran-Armitage | partial | 7,506 | -0.208 (-0.250 to -0.177) | **hurt** |
+
+![Method comparison](results/figures/methods_comparison.png)
+
+Every verdict is the same on the development set, which was never used to tune
+anything, so none of them is an artefact of the split.
+
+### What actually happened, method by method
+
+**Body-weight matching: a small, consistent gain, below the threshold.** It
+reduces false positives from 0.16 to 0.14 for the full VCG and lifts kappa by
+0.009 overall, with the interval excluding zero but the gain an order of
+magnitude smaller than the 0.05 the plan required. The largest single gains are
+where one would expect them: in-life body weight (+0.049) and terminal body
+weight (+0.038). It costs coverage, because 19% of units lack usable pre-dosing
+weights. **With ANCOVA** the full-VCG gain reaches +0.046 overall and +0.059 for
+in-life body weight, the only pre-specified "helped" verdict outside the
+hierarchical model, but it is not reproduced in the partial mode or on the
+development set, where organ weights got worse. Treat it as promising, not
+established.
+
+**Whole-group sampling hurt, as predicted.** Keeping groups intact raises the
+share of draws in which the concurrent control differs from its replacement from
+0.33 to 0.45, and false positives from 0.16 to 0.18 (full) and 0.09 to 0.14
+(partial). This is the between-study variance made visible: borrowing one study's
+control group imports that study's offset whole, while sampling individuals
+across studies averages part of it away. Sampling individuals is therefore a
+better *estimator* of the control mean while being a worse *model* of a real
+control group, which is why the hierarchical approach below is the right way to
+handle the structure rather than reproducing it in the sample.
+
+**Hierarchical borrowing: the full VCG trades errors, the partial one looks
+excellent until it is controlled.** Modelling tau^2 does what it is supposed to:
+for the full VCG the false positive share falls from 0.16 to 0.07 and the share
+of draws in which the concurrent control differs from the prediction falls from
+0.33 to 0.10, which is close to the 5% one would want. But the price is
+sensitivity, which drops from 0.82 to 0.49: once the predictive interval is
+widened to cover between-study variation, half of the findings the concurrent
+control made can no longer be detected. Kappa is unchanged (+0.011, interval
+including zero). The partial robust MAP prior is the one large pre-specified
+gain in this analysis, +0.186 kappa. The post-hoc control below qualifies it.
+
+**Tarone's test hurt.** Giving the trend test a beta-binomial prior from the
+historical controls made it disagree with the concurrent-control trend test more
+often, not less (-0.089 full, -0.208 partial). The reason is visible in the
+fitted priors: for the median neoplasm the prior is worth about 150 animals
+against a concurrent control of 50, and in 39% of cases the fit hits its cap and
+the historical controls are treated as one pooled binomial. A prior that
+outweighs the concurrent data by three to one dominates the test, and when the
+historical rate differs from the current study's the trend test follows the
+prior. Tarone's test is designed for exactly this situation and NTP uses
+historical ranges in its own tumour evaluations, but as applied here, with
+matching on public covariates only and no downweighting for heterogeneity, it
+makes agreement worse.
+
+### Post-hoc: is the partial gain actually borrowing?
+
+A partial VCG changes two things at once: half of the concurrent animals are
+removed, and virtual animals replace them. To separate the two, the partial
+design was also analysed using **only the kept concurrent half**, with no virtual
+animals at all. This was not in the plan and is recorded as a deviation in
+`docs/analysis_plan.md`; it uses separate random streams, so none of the
+pre-specified numbers change.
+
+| Comparison (partial mode, held-out) | Endpoints | Kappa change (95% CI) | Verdict |
+|---|---:|---|---|
+| Kept half alone vs current partial VCG | 18,958 | +0.091 (+0.076 to +0.106) | **helped** |
+| Hierarchical robust MAP vs kept half alone | 4,093 | -0.018 (-0.034 to -0.003) | **slightly worse** |
+| Cochran-Armitage on kept half vs on partial VCG | 9,418 | -0.040 (-0.068 to -0.013) | worse |
+| Tarone vs Cochran-Armitage on kept half | 7,506 | -0.169 (-0.208 to -0.130) | **hurt** |
+
+Halving the concurrent control and analysing it on its own agrees with the full
+concurrent control better than any VCG does: kappa 0.77 against 0.68 for the
+current partial VCG. The robust MAP prior does not beat it (-0.018 here, +0.007
+on the development set: no consistent difference either way). So the headline
+gain of the hierarchical partial VCG is mostly the gain from *not adding biased
+virtual animals*; the borrowing itself adds little. For continuous endpoints in
+this data set, a halved concurrent control analysed on its own is as good as
+anything built from public historical controls, and it uses the same number of
+animals as a partial VCG.
+
+The exception is the trend test on neoplasms, where losing half the control
+animals does cost power (sensitivity 0.78 to 0.62) and the partial VCG is better
+than the halved control. Rare-event endpoints are the case where borrowing has
+something to offer, and they are also the case where Tarone's test, as
+implemented here, overshot.
 
 ## How to reproduce
 
@@ -165,27 +370,34 @@ git clone https://github.com/Jkovv/virtual-control-groups-ntp
 cd virtual-control-groups-ntp
 pip install -r requirements.txt           # Python 3.11+, pinned versions
 export VCG_DATA_DIR=/somewhere/with/10GB   # optional; default is ./data
-make all                                   # download, prepare, evaluate, summarise
+make all                                   # the whole pipeline
 make test                                  # unit tests
 make notebook                              # execute notebooks/walkthrough.ipynb
 ```
 
 `make all` is equivalent to `python data/download_ntp.py` followed by
-`python -m vcg.cli all`. The download is about 9 GB (two large CSV files; use
-`DOWNLOAD_FLAGS=--skip-large` to skip them and lose the in-life body weight and
-incidence endpoints). On a 12-core laptop the whole pipeline takes about
-45 minutes after the download (about 8 min preparation, 17 min evaluation,
-1 min summary). Results are deterministic for a given seed (`--seed`).
+`python -m vcg.cli all`, which runs six steps: `prepare`, `evaluate` (the
+concurrent-versus-VCG comparison), `summarise`, `methods` (the pre-specified
+method comparison), `posthoc` and `compare`. Each can be run on its own. The
+download is about 9 GB (two large CSV files; use `DOWNLOAD_FLAGS=--skip-large`
+to skip them and lose the in-life body weight and incidence endpoints). On a
+12-core laptop the whole pipeline takes about 80 minutes after the download
+(4 min preparation, 19 min evaluation, 1 min summary, 14 min methods, 25 min
+post-hoc, 1 min compare). Results are deterministic for a given seed
+(`--seed`).
 
 Repository layout:
 
 ```
 data/        download script and data documentation (no data is committed)
-src/vcg/     prepare (tidy tables), matching (pools, VCG draws), stats (tests),
-             evaluation (comparison and summaries), plots, cli
+docs/        analysis_plan.md: the pre-specified plan for the method comparison
+src/vcg/     prepare (tidy tables), matching (pools, VCG draws, body-weight and
+             whole-group sampling), stats (all tests), evaluation (concurrent
+             versus VCG), methods (the method comparison), plots, cli
 notebooks/   walkthrough.ipynb: one study by hand, then the full results
-results/     figures/*.png, tables/*.csv, summary.json
-tests/       pytest suite (statistics against scipy, matching logic, evaluation on synthetic data)
+results/     figures/*.png, tables/*.csv, summary.json, methods_summary.json
+tests/       pytest suite: statistics against published and library reference
+             values, matching logic, both evaluations on synthetic data
 ```
 
 ## Limitations
@@ -199,15 +411,28 @@ tests/       pytest suite (statistics against scipy, matching logic, evaluation 
 * **Rodent, two strains, two designs.** F344 rats and B6C3F1/N mice in 3-month
   and 2-year NTP designs. Nothing is implied about other species, strains,
   sponsors or study types.
-* **The VCG is a random sample of pooled animals**, not a model. Animals from the
-  same historical study are correlated, and sampling individuals ignores that
-  structure. More elaborate VCG constructions (whole-group sampling, covariate
-  weighting, generative models) are out of scope.
-* **Statistics.** Dunnett's test only; NTP itself uses Williams' test when a
-  monotone trend is present, and the pairwise poly-3 test here has no
-  continuity correction. Significance at 5% is a crude stand-in for a
-  toxicologist's judgement, which also weighs dose-response, magnitude,
-  biological plausibility and historical ranges.
+* **VCG construction.** Six constructions are compared (uniform sampling of
+  individuals, body-weight weighted sampling, whole groups, hierarchical
+  borrowing, with and without a concurrent half), but all of them draw from the
+  animals that exist. Generative models, propensity weighting on more covariates
+  and NTP's own historical-control ranges are out of scope.
+* **The improvements are implemented in their simplest defensible form.** The
+  body-weight matching uses a normal density window rather than the full
+  weighted-sampling scheme of Gurjanov et al.; the hierarchical model is
+  DerSimonian-Laird with a normal-mixture robust prior rather than a full
+  Bayesian hierarchical fit; the beta-binomial prior for Tarone's test is fitted
+  by maximum likelihood with no heterogeneity downweighting and no
+  tumour-specific prior-strength cap beyond the pooling limit. A better
+  implementation of any of them could change its verdict, and the Tarone result
+  in particular should be read as "this prior, these matching criteria", not as
+  a verdict on the method.
+* **Statistics.** Dunnett's test only for the frequentist baseline; NTP itself
+  uses Williams' test when a monotone trend is present, and the pairwise poly-3
+  test here has no continuity correction. Significance at 5% is a crude stand-in
+  for a toxicologist's judgement, which also weighs dose-response, magnitude,
+  biological plausibility and historical ranges. The hierarchical contrasts use
+  a normal-theory Dunnett adjustment on an estimated between-study variance,
+  which is optimistic when few historical groups are available.
 * **Incidence denominators** are the animals on study, not the animals whose
   tissue was examined; for lower dose groups of 3-month studies this
   under-counts incidences. Neoplasms are tested per site and morphology without
@@ -215,6 +440,17 @@ tests/       pytest suite (statistics against scipy, matching logic, evaluation 
 * **The DTT collections are flagged by NTP as preliminary drafts** under review,
   and the in-life body weight collection is a 2025 release while the others are
   from 2026.
+* **One split, one set of settings.** The development/held-out split is by
+  start year, so period and method are partly confounded with each other: the
+  held-out studies are also the more recent and better documented ones. The
+  settings were fixed in advance but never tuned, so no claim is made that they
+  are the best ones for any of the three methods.
+* **Agreement is not accuracy.** Every verdict in this README is about agreeing
+  with the concurrent control. A method that agrees less could in principle be
+  closer to the truth, and the hierarchical full VCG is the clearest case: it is
+  much better calibrated against its own control groups (10% rather than 33% of
+  replacements differ from the real control) while agreeing no better overall,
+  because it loses sensitivity.
 * **Not a regulatory validation.** This is a retrospective agreement study on one
   public data source. Concordance with the concurrent control is necessary but
   not sufficient for a VCG to be acceptable, and no claim is made that any
@@ -246,7 +482,24 @@ consulted but not used because it publishes group-level summaries, not animals.
   https://doi.org/10.3389/fphar.2023.1142534
 * Gurjanov A, Vaas LAI, Steger-Hartmann T. The road to virtual control groups and
   the importance of proper body weight selection. *ALTEX* 2024;41(4):660-665.
-  https://doi.org/10.14573/altex.2403141
+  https://doi.org/10.14573/altex.2403141 (the basis of the body-weight matching
+  tested here)
+* Neuenschwander B, Capkun-Niggli G, Branson M, Spiegelhalter DJ. Summarizing
+  historical information on controls in clinical trials. *Clin Trials*
+  2010;7(1):5-18. https://doi.org/10.1177/1740774509356002 (meta-analytic
+  predictive prior)
+* Schmidli H, Gsteiger S, Roychoudhury S, O'Hagan A, Spiegelhalter D,
+  Neuenschwander B. Robust meta-analytic-predictive priors in clinical trials
+  with historical control information. *Biometrics* 2014;70(4):1023-1032.
+  https://doi.org/10.1111/biom.12242 (the robust prior used for partial VCGs)
+* Tarone RE. The use of historical control information in testing for a trend in
+  proportions. *Biometrics* 1982;38(1):215-220. https://doi.org/10.2307/2530304
+* Bailer AJ, Portier CJ. Effects of treatment-induced mortality and tumor-induced
+  mortality on tests for carcinogenicity in small samples. *Biometrics*
+  1988;44(2):417-431. https://doi.org/10.2307/2531856 (poly-k test)
+* Bieler GS, Williams RL. Ratio estimates, the delta method, and quantal response
+  tests for increased carcinogenicity. *Biometrics* 1993;49(3):793-801.
+  https://doi.org/10.2307/2532200 (the poly-3 variance used here)
 * Golden E, Allen D, Amberg A, et al. Toward implementing virtual control groups
   in nonclinical safety studies: workshop report and roadmap to implementation.
   *ALTEX* 2024;41(2):282-301. https://doi.org/10.14573/altex.2310041
