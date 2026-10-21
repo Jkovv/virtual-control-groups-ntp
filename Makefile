@@ -3,9 +3,9 @@
 PYTHON ?= python
 export PYTHONPATH := src
 
-.PHONY: all install data prepare evaluate summarise notebook test clean
+.PHONY: all install data prepare evaluate summarise methods compare notebook test clean
 
-all: data prepare evaluate summarise
+all: data prepare evaluate summarise methods compare
 
 install:
 	$(PYTHON) -m pip install -r requirements.txt
@@ -22,6 +22,12 @@ evaluate:
 summarise:
 	$(PYTHON) -m vcg.cli summarise
 
+methods:
+	$(PYTHON) -m vcg.cli methods
+
+compare:
+	$(PYTHON) -m vcg.cli compare
+
 notebook:
 	$(PYTHON) -m jupyter nbconvert --to notebook --execute --inplace notebooks/walkthrough.ipynb
 
@@ -29,4 +35,4 @@ test:
 	$(PYTHON) -m pytest -q
 
 clean:
-	rm -rf results/tables/*.csv results/tables/records.parquet results/figures/*.png results/summary.json
+	rm -rf results/tables/*.csv results/tables/*.parquet results/figures/*.png results/*.json

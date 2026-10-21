@@ -6,7 +6,12 @@ prepare    raw collections -> data/processed/*.parquet
 evaluate   processed tables -> results/tables/records.parquet (one row per
            study/sex/endpoint/dose group/configuration/draw)
 summarise  records -> results/tables/*.csv, results/summary.json, results/figures/*.png
-all        the three steps in order
+methods    processed tables -> results/tables/method_endpoints.parquet: the
+           pre-specified method comparison (docs/analysis_plan.md), one row per
+           study/sex/endpoint/method/mode with the draws averaged
+compare    method_endpoints -> results/tables/methods_*.csv, results/methods_summary.json,
+           results/figures/methods_comparison.png
+all        all five steps in order
 """
 from __future__ import annotations
 
@@ -21,7 +26,7 @@ from pathlib import Path
 import pandas as pd
 
 from . import config as C
-from . import evaluation, plots, prepare
+from . import evaluation, methods, plots, prepare
 
 log = logging.getLogger("vcg")
 
@@ -82,9 +87,39 @@ def step_summarise(args: argparse.Namespace) -> None:
     log.info("summary: %s", json.dumps(summary, indent=2))
 
 
+def step_methods(args: argparse.Namespace) -> None:
+    data = prepare.load_processed(C.PROCESSED_DIR)
+    t0 = time.time()
+    df = methods.run(data, workers=args.workers, n_draws=args.draws, seed=args.seed, limit=args.limit)
+    C.TABLES_DIR.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(C.TABLES_DIR / "method_endpoints.parquet", index=False)
+    log.info("%d endpoint rows written in %.0f s", len(df), time.time() - t0)
+
+
+def step_compare(args: argparse.Namespace) -> None:
+    df = pd.read_parquet(C.TABLES_DIR / "method_endpoints.parquet")
+    tables = methods.compare(df, seed=args.seed)
+    for name, table in tables.items():
+        table.to_csv(C.TABLES_DIR / f"{name}.csv", index=False, float_format="%.4f")
+    fig = plots.method_comparison(tables["methods_vs_baseline"], C.FIGURES_DIR / "methods_comparison.png")
+    vs = tables["methods_vs_baseline"]
+    summary = {
+        "cutoff_year": C.CUTOFF_YEAR,
+        "matching_level": C.METHOD_LEVEL,
+        "units_by_set": df.drop_duplicates(["set", "study", "sex"]).groupby("set", observed=True).size().to_dict(),
+        "studies_by_set": df.drop_duplicates(["set", "study"]).groupby("set", observed=True).size().to_dict(),
+        "verdicts_holdout": {f"{r.method}/{r.mode}/{r.domain}": f"{r.verdict} (kappa {r.kappa_diff:+.3f}, "
+                                                                f"95% CI {r.ci_low:+.3f} to {r.ci_high:+.3f})"
+                             for r in vs[vs["set"] == "holdout"].itertuples()},
+        "figure": fig.relative_to(C.ROOT).as_posix(),
+    }
+    (C.RESULTS_DIR / "methods_summary.json").write_text(json.dumps(summary, indent=2))
+    log.info("method comparison written: %d paired comparisons", len(vs))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="vcg", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("step", choices=["prepare", "evaluate", "summarise", "all"])
+    ap.add_argument("step", choices=["prepare", "evaluate", "summarise", "methods", "compare", "all"])
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument("--draws", type=int, default=C.N_DRAWS, help="virtual control groups per configuration")
     ap.add_argument("--seed", type=int, default=C.SEED)
@@ -93,8 +128,9 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
-    steps = {"prepare": step_prepare, "evaluate": step_evaluate, "summarise": step_summarise}
-    for name in (["prepare", "evaluate", "summarise"] if args.step == "all" else [args.step]):
+    steps = {"prepare": step_prepare, "evaluate": step_evaluate, "summarise": step_summarise,
+             "methods": step_methods, "compare": step_compare}
+    for name in (list(steps) if args.step == "all" else [args.step]):
         log.info("== %s", name)
         steps[name](args)
     return 0

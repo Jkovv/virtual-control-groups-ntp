@@ -173,6 +173,50 @@ def endpoints(tables: dict[str, pd.DataFrame], out: Path, level: str = "L3 +labo
     return out
 
 
+METHOD_LABELS = {"bw_matched": "Body-weight matched", "bw_ancova": "Body-weight matched + ANCOVA",
+                 "whole_group": "Whole historical groups", "hierarchical": "Hierarchical (MAP / robust MAP)",
+                 "tarone": "Tarone, beta-binomial prior"}
+METHOD_COLORS = {"bw_matched": "#3b6ea5", "bw_ancova": "#8fb8de", "whole_group": "#9a9a9a",
+                 "hierarchical": "#d1495b", "tarone": "#edae49"}
+
+
+def method_comparison(vs: pd.DataFrame, out: Path, set_label: str = "holdout") -> Path:
+    """Kappa change against the current method on the same endpoints, with the
+    study-cluster bootstrap 95% interval, per endpoint domain (held-out set)."""
+    t = vs[vs["set"] == set_label]
+    domains = [d for d in [*DOMAIN_ORDER, "all"] if d in set(t["domain"])]
+    methods = [m for m in METHOD_LABELS if m in set(t["method"])]
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5.2), sharey=True)
+    offsets = np.linspace(-0.3, 0.3, len(methods))
+    for ax, mode, title in zip(axes, ["vcg", "partial"], ["Full virtual control group", "Partial (half concurrent)"]):
+        for off, m in zip(offsets, methods):
+            d = t[(t["mode"] == mode) & (t["method"] == m)].set_index("domain")
+            ys, xs, lo, hi = [], [], [], []
+            for i, dom in enumerate(domains):
+                if dom in d.index:
+                    r = d.loc[dom]
+                    ys.append(i + off); xs.append(r["kappa_diff"]); lo.append(r["ci_low"]); hi.append(r["ci_high"])
+            if not ys:
+                continue
+            xs, lo, hi = map(np.asarray, (xs, lo, hi))
+            ax.errorbar(xs, ys, xerr=[xs - lo, hi - xs], fmt="o", ms=4, color=METHOD_COLORS[m],
+                        capsize=2, lw=1, label=METHOD_LABELS[m])
+        ax.axvline(0, color="k", lw=0.8)
+        ax.axvline(C.HELPED_MIN_KAPPA_GAIN, color="k", lw=0.6, ls=":")
+        ax.set_title(title, fontsize=10, loc="left")
+        ax.set_xlabel("Kappa change versus the current method (same endpoints), 95% CI")
+    labels = [DOMAIN_LABELS.get(d, "All domains") for d in domains]
+    axes[0].set_yticks(range(len(domains)), labels)
+    axes[0].invert_yaxis()
+    axes[1].legend(fontsize=7.5, frameon=False, loc="lower right")
+    fig.suptitle(f"Pre-specified improvements on the held-out studies (start year >= {C.CUTOFF_YEAR}); "
+                 "dotted line: the 0.05 gain needed to count as helped", fontsize=10, x=0.01, ha="left", y=1.0)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out)
+    plt.close(fig)
+    return out
+
+
 def make_all(tables: dict[str, pd.DataFrame], fig_dir: Path = C.FIGURES_DIR) -> list[Path]:
     fig_dir.mkdir(parents=True, exist_ok=True)
     return [headline(tables, fig_dir / "headline_agreement.png"),
