@@ -7,7 +7,9 @@ Outputs (all parquet, in ``data/processed/``):
 * ``measurements``  one row per animal x continuous endpoint (terminal value);
 * ``animals``       roster of animals per study/sex/dose with time on study and
                     removal reason (denominators for incidence endpoints);
-* ``lesions``       one row per animal x histopathology finding.
+* ``lesions``       one row per animal x histopathology finding;
+* ``covariates``    pre-dosing body weight (``bw0``) per animal, used for matching
+                    and as an ANCOVA covariate, never as an endpoint.
 
 Only F344 rats and B6C3F1/N mice from simple dose-response 3-month and
 chronic (2-year) studies are kept (see ``config``).
@@ -367,6 +369,14 @@ def build(raw_dir: Path = C.RAW_DIR, out_dir: Path = C.PROCESSED_DIR, workers: i
     meas = _single_control_group(meas)
     meas = meas[meas["study"].isin(studies.index)]
     meas["endpoint"] = meas["endpoint"].replace(C.SHORT_NAMES)
+    # The pre-dosing body weight is a matching covariate, not an endpoint: it is
+    # measured before any treatment, so a "treatment effect" on it can only be chance
+    # or a mismatch between the control groups.
+    is_bw0 = meas["endpoint"].eq(C.INITIAL_BW_ENDPOINT)
+    covariates = (meas.loc[is_bw0, ["study", "sex", "animal", "value"]]
+                  .rename(columns={"value": "bw0"})
+                  .drop_duplicates(["study", "sex", "animal"]))
+    meas = meas.loc[~is_bw0]
 
     roster_frames = [f for f in ([histo] if histo is not None else []) + [frames["terminal_bw"]]
                      if f is not None and len(f)]
@@ -387,10 +397,14 @@ def build(raw_dir: Path = C.RAW_DIR, out_dir: Path = C.PROCESSED_DIR, workers: i
     meas.to_parquet(out_dir / "measurements.parquet", index=False)
     roster.to_parquet(out_dir / "animals.parquet", index=False)
     lesions.to_parquet(out_dir / "lesions.parquet", index=False)
-    log.info("written: %d studies, %d measurements, %d animals, %d lesion records",
-             len(studies), len(meas), len(roster), len(lesions))
+    covariates.to_parquet(out_dir / "covariates.parquet", index=False)
+    log.info("written: %d studies, %d measurements, %d animals, %d lesion records, %d pre-dosing weights",
+             len(studies), len(meas), len(roster), len(lesions), len(covariates))
+
+
+TABLES = ("studies", "measurements", "animals", "lesions", "covariates")
 
 
 def load_processed(dir_: Path = C.PROCESSED_DIR) -> dict[str, pd.DataFrame]:
-    return {name: pd.read_parquet(dir_ / f"{name}.parquet")
-            for name in ("studies", "measurements", "animals", "lesions")}
+    """Load the processed tables; ``covariates`` holds the pre-dosing body weight (bw0)."""
+    return {name: pd.read_parquet(dir_ / f"{name}.parquet") for name in TABLES}
