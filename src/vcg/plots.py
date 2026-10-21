@@ -246,11 +246,11 @@ def ceiling(vs_split: pd.DataFrame, reliability: pd.DataFrame, out: Path, set_la
     ax.invert_yaxis()
     ax.set_xlim(0, 1.0)
     ax.set_xlabel("Cohen's kappa against a disjoint half of the concurrent control")
-    ax.legend(fontsize=8, frameon=False, loc="lower right")
-    ax.set_title("Nothing reaches the noise ceiling, and borrowing does not raise it",
+    ax.legend(fontsize=8, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=3)
+    ax.set_title("Adding historical animals lowers the agreement; the MAP prior matches it",
                  fontsize=10, loc="left")
     fig.suptitle(f"Held-out studies: methods scored against control animals they never saw "
-                 f"(start year >= {C.CUTOFF_YEAR})", fontsize=9.5, x=0.01, ha="left", y=1.0)
+                 f"(start year >= {C.CUTOFF_YEAR})", fontsize=9.5, x=0.01, ha="left", y=1.02)
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out)
     plt.close(fig)

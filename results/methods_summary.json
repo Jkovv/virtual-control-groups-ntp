@@ -2,12 +2,12 @@
   "cutoff_year": 1990,
   "matching_level": "L3 +laboratory",
   "units_by_set": {
-    "development": 1117,
-    "holdout": 656
+    "development": 1245,
+    "holdout": 736
   },
   "studies_by_set": {
-    "development": 904,
-    "holdout": 334
+    "development": 997,
+    "holdout": 375
   },
   "verdicts_holdout": {
     "bw_matched/partial/clin_chem": "no clear difference (kappa +0.035, 95% CI +0.007 to +0.062)",
@@ -67,5 +67,38 @@
     "tarone/vcg/neoplasm": "hurt (kappa -0.089, 95% CI -0.125 to -0.055)",
     "tarone/vcg/all": "hurt (kappa -0.089, 95% CI -0.127 to -0.054)"
   },
-  "figure": "results/figures/methods_comparison.png"
+  "figures": [
+    "results/figures/methods_comparison.png",
+    "results/figures/noise_ceiling.png"
+  ],
+  "noise_ceiling_holdout": {
+    "organ_weight": {
+      "agreement": 0.8276,
+      "kappa": 0.5842
+    },
+    "terminal_bw": {
+      "agreement": 0.8444,
+      "kappa": 0.6869
+    },
+    "inlife_bw": {
+      "agreement": 0.8553,
+      "kappa": 0.7102
+    },
+    "nonneoplastic lesion": {
+      "agreement": 0.9285,
+      "kappa": 0.8568
+    },
+    "clin_chem": {
+      "agreement": 0.8196,
+      "kappa": 0.5791
+    },
+    "hematology": {
+      "agreement": 0.8433,
+      "kappa": 0.6054
+    },
+    "neoplasm": {
+      "agreement": 0.8209,
+      "kappa": 0.4067
+    }
+  }
 }
