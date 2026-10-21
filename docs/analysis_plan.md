@@ -92,6 +92,32 @@ Changes in sensitivity, specificity and the false positive share are reported
 next to each verdict, because a kappa gain can come from fewer false positives at
 the cost of missed findings.
 
+## Implementation details (fixed with the code, before any run on the data)
+
+* Trend tests use dose ranks (0 for control, 1, 2, ...) as scores and are
+  one-sided for an increase, as the poly-3 test is. Group sizes are not poly-3
+  adjusted in the trend tests.
+* Tarone's statistic is the Cochran-Armitage statistic with the historical
+  controls entering as a control pseudo-group of a + b animals of which a are
+  affected, (a, b) being the beta-binomial maximum-likelihood estimates. With
+  a = b = 0 it is the Cochran-Armitage test. The beta-binomial is parametrised by
+  its mean and a + b; a + b is capped at the total number of historical animals
+  (the pooled-binomial limit) and the mean is kept in [1e-7, 1 - 1e-7].
+* Random-effects model: DerSimonian-Laird on the historical control group means,
+  with each group's sampling variance computed from the pooled within-group
+  variance of the matched historical groups (individual groups of 10 animals
+  give unstable variances, and some clinical pathology values are coarse).
+* Contrasts that share one control term (hierarchical and robust MAP) are
+  adjusted with the Dunnett distribution using lambda_i = sqrt(V_c / (V_c + V_i)),
+  which is exact for that covariance structure. Their degrees of freedom are the
+  within-group degrees of freedom of the treated groups plus H - 1 historical
+  groups (full VCG) or plus the kept concurrent animals - 1 (partial), capped
+  at 200.
+* The robust MAP posterior of the control mean is a two-component normal mixture;
+  it is summarised by its exact mean and variance (moment matching) for the test.
+* ANCOVA contrasts are adjusted with the usual Dunnett lambdas from the group
+  sizes; the covariate changes the contrast correlations only slightly.
+
 ## Deviations
 
 None so far.

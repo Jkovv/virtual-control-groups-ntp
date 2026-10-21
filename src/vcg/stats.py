@@ -10,6 +10,12 @@ Each endpoint type gets the test a toxicologist would reach for:
   1988) with the Bieler & Williams (1993) variance, as used in NTP technical
   reports.
 
+For the method comparison (docs/analysis_plan.md) it also provides ANCOVA with
+a Dunnett adjustment, DerSimonian-Laird random effects, meta-analytic-predictive
+and robust MAP priors (Neuenschwander et al. 2010; Schmidli et al. 2014), the
+Cochran-Armitage trend test and Tarone's (1982) trend test with a beta-binomial
+historical control prior.
+
 The Dunnett p-value is computed from the exact multivariate-t distribution
 with the product correlation structure implied by the group sizes.  Because the
 correlations are of the form rho_ij = lambda_i * lambda_j, the k-dimensional
@@ -268,3 +274,268 @@ def poly3_test(aff_treated: np.ndarray, w_treated: np.ndarray,
         return (np.inf if p1 > p0 else -np.inf if p1 < p0 else 0.0), (0.0 if p1 > p0 else 1.0)
     z = (p1 - p0) / np.sqrt(var)
     return float(z), float(stats.norm.sf(z))
+
+
+# ----------------------------------------------------------------------------
+# Contrasts against a shared control term (hierarchical models)
+# ----------------------------------------------------------------------------
+
+def shared_control_contrasts(diff: np.ndarray, var_treated: np.ndarray, var_control: float,
+                             df: int) -> tuple[np.ndarray, np.ndarray]:
+    """Dunnett-adjusted two-sided p-values for contrasts ``treated_i - control``.
+
+    Each contrast has variance ``var_treated[i] + var_control`` and every pair
+    shares the control term, so corr(i, j) = lambda_i * lambda_j with
+    lambda_i = sqrt(var_control / (var_control + var_treated[i])).  That is the
+    product structure ``dunnett_sf`` integrates exactly.  Returns (t, p).
+    """
+    diff = np.asarray(diff, dtype=float)
+    vt = np.asarray(var_treated, dtype=float)
+    t = diff / np.sqrt(vt + var_control)
+    lam = np.clip(np.sqrt(var_control / (var_control + vt)), 1e-6, 0.999)
+    p = dunnett_sf(np.abs(t), lam, max(1, int(df)), exact=True)
+    return t, p
+
+
+def _pooled_within_variance(groups: list[np.ndarray]) -> tuple[float, int]:
+    """Pooled within-group variance and its degrees of freedom."""
+    ss = sum(((g - g.mean()) ** 2).sum() for g in groups if len(g) >= 2)
+    df = sum(len(g) - 1 for g in groups if len(g) >= 2)
+    return (ss / df if df > 0 else np.nan), df
+
+
+# ----------------------------------------------------------------------------
+# ANCOVA with Dunnett adjustment
+# ----------------------------------------------------------------------------
+
+def ancova_dunnett(groups: list[np.ndarray], covariates: list[np.ndarray],
+                   control: np.ndarray, control_cov: np.ndarray) -> DunnettResult:
+    """Dunnett-adjusted ANCOVA: y ~ group + covariate, each treated group versus control.
+
+    The group effects are the coefficients of treatment dummies in an OLS model
+    with a common covariate slope; their t statistics are exact.  The
+    multiplicity adjustment uses the usual Dunnett lambdas from the group sizes,
+    which ignores the small change in correlation the covariate introduces.
+    """
+    ys = [np.asarray(control, dtype=float)] + [np.asarray(g, dtype=float) for g in groups]
+    xs = [np.asarray(control_cov, dtype=float)] + [np.asarray(c, dtype=float) for c in covariates]
+    k = len(groups)
+    ns = np.array([len(y) for y in ys])
+    df = int(ns.sum() - k - 2)
+    if df < 1 or (ns < 2).any():
+        return DunnettResult(np.full(k, np.nan), np.full(k, np.nan), df)
+    y = np.concatenate(ys)
+    x = np.concatenate(xs)
+    design = np.zeros((y.size, k + 2))
+    design[:, 0] = 1.0
+    start = ns[0]
+    for i in range(k):
+        design[start:start + ns[i + 1], i + 1] = 1.0
+        start += ns[i + 1]
+    design[:, -1] = x - x.mean()
+    xtx_inv = np.linalg.pinv(design.T @ design)
+    beta = xtx_inv @ design.T @ y
+    resid = y - design @ beta
+    sigma2 = (resid @ resid) / df
+    if sigma2 <= 0:
+        return DunnettResult(np.zeros(k), np.ones(k), df)
+    se = np.sqrt(sigma2 * np.diag(xtx_inv)[1:k + 1])
+    tstat = beta[1:k + 1] / se
+    lambdas = np.sqrt(ns[1:] / (ns[0] + ns[1:]))
+    return DunnettResult(tstat, dunnett_sf(np.abs(tstat), lambdas, df), df)
+
+
+# ----------------------------------------------------------------------------
+# Random-effects meta-analysis and (robust) meta-analytic-predictive priors
+# ----------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class RandomEffects:
+    mu: float          # random-effects mean of the group means
+    se_mu: float       # its standard error
+    tau2: float        # between-group variance
+    n_groups: int
+
+    @property
+    def predictive_var(self) -> float:
+        """Variance of a new group's true mean, tau^2 + se(mu)^2: the MAP prior."""
+        return self.tau2 + self.se_mu**2
+
+
+def dersimonian_laird(means: np.ndarray, variances: np.ndarray) -> RandomEffects:
+    """DerSimonian-Laird random-effects estimate from group means and their variances."""
+    y = np.asarray(means, dtype=float)
+    v = np.asarray(variances, dtype=float)
+    h = y.size
+    w = 1.0 / v
+    mu_fe = (w * y).sum() / w.sum()
+    q = (w * (y - mu_fe) ** 2).sum()
+    c = w.sum() - (w**2).sum() / w.sum()
+    tau2 = max(0.0, (q - (h - 1)) / c) if c > 0 else 0.0
+    w_re = 1.0 / (v + tau2)
+    mu = (w_re * y).sum() / w_re.sum()
+    return RandomEffects(float(mu), float(np.sqrt(1.0 / w_re.sum())), float(tau2), h)
+
+
+def historical_random_effects(hist_groups: list[np.ndarray]) -> tuple[RandomEffects, float]:
+    """Random-effects model of historical control groups.
+
+    Each group's sampling variance is the pooled within-group variance divided by
+    its size.  Returns the fit and the pooled within-group variance.
+    """
+    groups = [np.asarray(g, dtype=float) for g in hist_groups if len(g) >= 2]
+    s2, _ = _pooled_within_variance(groups)
+    if not np.isfinite(s2) or s2 <= 0:
+        s2 = max(float(np.var(np.concatenate(groups))), 1e-12)
+    means = np.array([g.mean() for g in groups])
+    ns = np.array([len(g) for g in groups], dtype=float)
+    return dersimonian_laird(means, s2 / ns), float(s2)
+
+
+def map_predictive_test(groups: list[np.ndarray], re: RandomEffects, max_df: int = 200) -> DunnettResult:
+    """Compare treated groups with the MAP predictive control mean (no concurrent control).
+
+    Contrast i: mean_i - mu, variance s^2/n_i + tau^2 + se(mu)^2, with s^2 the
+    pooled within-group variance of the treated groups.
+    """
+    groups = [np.asarray(g, dtype=float) for g in groups]
+    k = len(groups)
+    s2, df_w = _pooled_within_variance(groups)
+    if not np.isfinite(s2) or df_w < 1:
+        return DunnettResult(np.full(k, np.nan), np.full(k, np.nan), 0)
+    ns = np.array([len(g) for g in groups], dtype=float)
+    diff = np.array([g.mean() for g in groups]) - re.mu
+    df = min(max_df, df_w + re.n_groups - 1)
+    t, p = shared_control_contrasts(diff, s2 / ns, re.predictive_var, df)
+    return DunnettResult(t, p, df)
+
+
+@dataclass(frozen=True)
+class NormalMixture:
+    weights: np.ndarray
+    means: np.ndarray
+    variances: np.ndarray
+
+    @property
+    def mean(self) -> float:
+        return float((self.weights * self.means).sum())
+
+    @property
+    def var(self) -> float:
+        m = self.mean
+        return float((self.weights * (self.variances + self.means**2)).sum() - m**2)
+
+
+def robust_map_prior(re: RandomEffects, unit_var: float, vague_weight: float = 0.2) -> NormalMixture:
+    """Robust MAP prior (Schmidli et al. 2014) for a new study's control mean:
+    (1 - w) N(mu, tau^2 + se^2) + w N(mu, unit_var), the second component being
+    a unit-information prior worth one animal."""
+    return NormalMixture(np.array([1.0 - vague_weight, vague_weight]),
+                         np.array([re.mu, re.mu]),
+                         np.array([re.predictive_var, unit_var]))
+
+
+def normal_mixture_posterior(prior: NormalMixture, ybar: float, var_ybar: float) -> NormalMixture:
+    """Conjugate update of a normal-mixture prior with the likelihood N(ybar; theta, var_ybar)."""
+    pv, pm, pw = prior.variances, prior.means, prior.weights
+    post_var = 1.0 / (1.0 / pv + 1.0 / var_ybar)
+    post_mean = post_var * (pm / pv + ybar / var_ybar)
+    marg_var = pv + var_ybar                       # marginal likelihood of ybar per component
+    log_w = np.log(np.maximum(pw, 1e-300)) - 0.5 * (np.log(2 * np.pi * marg_var) + (ybar - pm) ** 2 / marg_var)
+    w = np.exp(log_w - log_w.max())
+    return NormalMixture(w / w.sum(), post_mean, post_var)
+
+
+def robust_map_test(groups: list[np.ndarray], concurrent_part: np.ndarray, re: RandomEffects,
+                    hist_within_var: float, vague_weight: float = 0.2, max_df: int = 200) -> DunnettResult:
+    """Partial VCG with a robust MAP prior: the control mean's posterior combines the
+    prior from historical controls with the kept concurrent animals; each treated
+    group is compared with that posterior, summarised by its mean and variance."""
+    groups = [np.asarray(g, dtype=float) for g in groups]
+    kept = np.asarray(concurrent_part, dtype=float)
+    k = len(groups)
+    s2, df_w = _pooled_within_variance([*groups, kept])
+    if not np.isfinite(s2) or df_w < 1 or kept.size < 1:
+        return DunnettResult(np.full(k, np.nan), np.full(k, np.nan), 0)
+    prior = robust_map_prior(re, hist_within_var, vague_weight)
+    post = normal_mixture_posterior(prior, float(kept.mean()), s2 / kept.size)
+    ns = np.array([len(g) for g in groups], dtype=float)
+    diff = np.array([g.mean() for g in groups]) - post.mean
+    df = min(max_df, df_w)
+    t, p = shared_control_contrasts(diff, s2 / ns, post.var, df)
+    return DunnettResult(t, p, df)
+
+
+# ----------------------------------------------------------------------------
+# Trend tests for incidences: Cochran-Armitage and Tarone (1982)
+# ----------------------------------------------------------------------------
+
+def tarone_trend(x: np.ndarray, n: np.ndarray, scores: np.ndarray,
+                 a: float = 0.0, b: float = 0.0) -> tuple[float, float]:
+    """Trend test for an increase in proportions using historical control information.
+
+    ``x``, ``n`` and ``scores`` cover the current groups, control first; the
+    control may have n = 0 when it is replaced entirely.  The historical
+    controls enter as a control pseudo-group of a + b animals with a affected,
+    (a, b) being beta-binomial parameters (Tarone 1982).  With a = b = 0 this
+    is the Cochran-Armitage test.  Returns (z, one-sided p for an increase).
+    """
+    x, n, d = (np.asarray(v, dtype=float) for v in (x, n, scores))
+    n_tot = n.sum() + a + b
+    if n_tot <= 0:
+        return np.nan, np.nan
+    p_bar = (x.sum() + a) / n_tot
+    num = (d * x).sum() - p_bar * (d * n).sum()
+    var = p_bar * (1 - p_bar) * ((n * d**2).sum() - (n * d).sum() ** 2 / n_tot)
+    if var <= 0:
+        return 0.0, 1.0
+    z = num / np.sqrt(var)
+    return float(z), float(stats.norm.sf(z))
+
+
+def cochran_armitage(x: np.ndarray, n: np.ndarray, scores: np.ndarray) -> tuple[float, float]:
+    """Asymptotic Cochran-Armitage trend test (one-sided, increase)."""
+    return tarone_trend(x, n, scores)
+
+
+def betabinom_loglik(a: float, b: float, x: np.ndarray, n: np.ndarray) -> float:
+    """Beta-binomial log-likelihood of group counts ``x`` out of ``n``."""
+    x = np.asarray(x, dtype=float)
+    n = np.asarray(n, dtype=float)
+    log_comb = special.gammaln(n + 1) - special.gammaln(x + 1) - special.gammaln(n - x + 1)
+    return float((log_comb + special.betaln(x + a, n - x + b) - special.betaln(a, b)).sum())
+
+
+def fit_beta_binomial(x: np.ndarray, n: np.ndarray) -> tuple[float, float]:
+    """Maximum-likelihood beta-binomial fit to historical control counts.
+
+    Parametrised by the mean m, kept in [1e-7, 1 - 1e-7], and s = a + b, capped
+    at the total number of historical animals: without overdispersion the
+    historical controls cannot carry more information than pooling them.
+    Returns (a, b).
+    """
+    from scipy import optimize
+
+    x = np.asarray(x, dtype=float)
+    n = np.asarray(n, dtype=float)
+    keep = n > 0
+    x, n = x[keep], n[keep]
+    s_max = max(float(n.sum()), 1.0)
+    eps = 1e-7
+    m0 = float(np.clip(x.sum() / n.sum(), eps, 1 - eps))
+
+    def nll(theta: np.ndarray) -> float:
+        m = special.expit(theta[0])
+        s = np.exp(theta[1])
+        return -betabinom_loglik(m * s, (1 - m) * s, x, n)
+
+    bounds = [(special.logit(eps), special.logit(1 - eps)), (np.log(1e-2), np.log(s_max))]
+    best = None
+    for s0 in (2.0, 20.0, 200.0):
+        start = [special.logit(m0), np.log(min(s0, s_max))]
+        res = optimize.minimize(nll, x0=start, method="L-BFGS-B", bounds=bounds)
+        if best is None or res.fun < best.fun:
+            best = res
+    m = special.expit(best.x[0])
+    s = np.exp(best.x[1])
+    return float(m * s), float((1 - m) * s)
