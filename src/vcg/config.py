@@ -104,6 +104,20 @@ N_DRAWS = 20                          # virtual control groups drawn per configu
 ALPHA = 0.05
 SEED = 20261021
 
+# --- method comparison (pre-specified; see docs/analysis_plan.md) -----------
+# Every value in this block was fixed before the comparison was run.
+CUTOFF_YEAR = 1990                    # targets starting >= 1990 form the held-out set (24.6% of studies)
+METHOD_LEVEL = "L3 +laboratory"       # matching level shared by all methods
+INITIAL_BW_ENDPOINT = "Body weight, initial"   # matching covariate, not an endpoint
+BW_WINDOW_SD = 2.0                    # keep pool animals within +/- 2 target SDs of the target mean
+BW_MIN_TARGET_ANIMALS = 5             # target study/sex needs this many pre-dosing weights
+ANCOVA_DOMAINS = ("terminal_bw", "inlife_bw", "organ_weight")
+MIN_HIST_GROUPS = 3                   # whole-group sampling and hierarchical models need >= 3 groups
+ROBUST_MAP_WEIGHT = 0.2               # weight of the vague (unit-information) component
+HIER_MAX_DF = 200                     # cap on degrees of freedom of the hierarchical contrasts
+BOOTSTRAP_RESAMPLES = 1000            # study-cluster bootstrap for method differences
+HELPED_MIN_KAPPA_GAIN = 0.05          # "helped" needs this kappa gain and a CI excluding 0
+
 # --- laboratory name normalisation -----------------------------------------
 # The catalog and the histopathology table spell the same laboratory several
 # ways (legacy upper-case codes versus full names).
