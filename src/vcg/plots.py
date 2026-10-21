@@ -208,7 +208,7 @@ def method_comparison(vs: pd.DataFrame, out: Path, set_label: str = "holdout") -
     labels = [DOMAIN_LABELS.get(d, "All domains") for d in domains]
     axes[0].set_yticks(range(len(domains)), labels)
     axes[0].invert_yaxis()
-    axes[1].legend(fontsize=7.5, frameon=False, loc="lower right")
+    axes[1].legend(fontsize=7.5, frameon=False, loc="upper center", bbox_to_anchor=(-0.1, -0.12), ncol=3)
     fig.suptitle(f"Pre-specified improvements on the held-out studies (start year >= {C.CUTOFF_YEAR}); "
                  "dotted line: the 0.05 gain needed to count as helped", fontsize=10, x=0.01, ha="left", y=1.0)
     out.parent.mkdir(parents=True, exist_ok=True)

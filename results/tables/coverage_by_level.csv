@@ -1,6 +1,6 @@
 level,n_units,coverage
-L0 design,35729,1.0000
-L1 +route,35397,0.9907
-L2 +vehicle,32809,0.9183
-L3 +laboratory,26118,0.7310
-L4 +period (3y),21464,0.6007
+L0 design,34570,1.0000
+L1 +route,34247,0.9907
+L2 +vehicle,31727,0.9178
+L3 +laboratory,25243,0.7302
+L4 +period (3y),20755,0.6004

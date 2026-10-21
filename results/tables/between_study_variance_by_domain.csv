@@ -1,0 +1,6 @@
+domain,strata_endpoints,median_icc,q25_icc,q75_icc,implied_fp_individual,implied_fp_whole_group
+clin_chem,141,0.4222,0.2060,0.6393,0.2876,0.4754
+hematology,379,0.4263,0.1597,0.7146,0.2897,0.4786
+inlife_bw,308,0.2233,0.0991,0.3708,0.1789,0.2999
+organ_weight,232,0.2534,0.0866,0.4425,0.1963,0.3295
+terminal_bw,120,0.1974,0.0630,0.3648,0.1639,0.2735

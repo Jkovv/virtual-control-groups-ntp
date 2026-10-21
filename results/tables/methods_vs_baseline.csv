@@ -1,0 +1,113 @@
+set,method,mode,domain,comparator,n_paired,n_studies,kappa_method,kappa_baseline,kappa_diff,ci_low,ci_high,agreement_method,agreement_baseline,sensitivity_method,sensitivity_baseline,specificity_method,specificity_baseline,false_positive_method,false_positive_baseline,verdict
+development,bw_matched,partial,clin_chem,baseline,223,15,0.4078,0.4146,-0.0069,-0.0390,0.0245,0.7135,0.7175,0.7282,0.7282,0.7055,0.7117,0.1915,0.1874,no clear difference
+development,bw_matched,partial,hematology,baseline,479,19,0.5573,0.5436,0.0138,-0.0036,0.0300,0.7773,0.7700,0.8434,0.8431,0.7254,0.7125,0.1537,0.1609,no clear difference
+development,bw_matched,partial,inlife_bw,baseline,725,174,0.5672,0.5581,0.0092,-0.0147,0.0309,0.8020,0.7980,0.8850,0.8832,0.6662,0.6585,0.1266,0.1295,no clear difference
+development,bw_matched,partial,neoplasm,baseline,2398,43,0.6855,0.6779,0.0076,-0.0094,0.0236,0.9091,0.9040,0.7736,0.7989,0.9364,0.9252,0.0530,0.0623,no clear difference
+development,bw_matched,partial,nonneoplastic lesion,baseline,281,14,0.8369,0.8278,0.0090,-0.0006,0.0208,0.9203,0.9160,0.8921,0.8918,0.9635,0.9532,0.0144,0.0185,no clear difference
+development,bw_matched,partial,organ_weight,baseline,374,35,0.6182,0.6047,0.0135,-0.0142,0.0455,0.8187,0.8132,0.8062,0.7869,0.8259,0.8285,0.1103,0.1087,no clear difference
+development,bw_matched,partial,terminal_bw,baseline,197,102,0.6042,0.5685,0.0357,0.0018,0.0712,0.8010,0.7822,0.8750,0.8685,0.7460,0.7181,0.1457,0.1617,no clear difference
+development,bw_matched,partial,all,baseline,4677,177,0.6871,0.6774,0.0097,0.0025,0.0177,0.8586,0.8533,0.8352,0.8392,0.8699,0.8601,0.0875,0.0940,no clear difference
+development,bw_matched,vcg,clin_chem,baseline,153,10,0.1078,0.1240,-0.0161,-0.0587,0.0311,0.5330,0.5431,0.6548,0.6655,0.4869,0.4968,0.3722,0.3650,no clear difference
+development,bw_matched,vcg,hematology,baseline,325,13,0.3288,0.3367,-0.0079,-0.0412,0.0221,0.6528,0.6569,0.8034,0.8075,0.5484,0.5526,0.2668,0.2643,no clear difference
+development,bw_matched,vcg,inlife_bw,baseline,450,122,0.3988,0.3751,0.0237,-0.0078,0.0551,0.7260,0.7151,0.8964,0.8867,0.4796,0.4671,0.2128,0.2179,no clear difference
+development,bw_matched,vcg,neoplasm,baseline,1072,19,0.4863,0.4733,0.0130,-0.0147,0.0342,0.8376,0.8278,0.6708,0.6904,0.8720,0.8561,0.1062,0.1194,no clear difference
+development,bw_matched,vcg,nonneoplastic lesion,baseline,270,14,0.7921,0.7901,0.0020,-0.0012,0.0061,0.8993,0.8983,0.8878,0.8878,0.9170,0.9146,0.0326,0.0335,no clear difference
+development,bw_matched,vcg,organ_weight,baseline,235,22,0.3990,0.4041,-0.0051,-0.0286,0.0210,0.7053,0.7109,0.7750,0.7612,0.6720,0.6868,0.2219,0.2119,no clear difference
+development,bw_matched,vcg,terminal_bw,baseline,124,65,0.3778,0.3456,0.0322,-0.0150,0.0822,0.6758,0.6565,0.8468,0.8426,0.5714,0.5429,0.2661,0.2839,no clear difference
+development,bw_matched,vcg,all,baseline,2629,125,0.5152,0.5061,0.0091,-0.0054,0.0241,0.7648,0.7595,0.8121,0.8130,0.7397,0.7312,0.1701,0.1757,no clear difference
+holdout,bw_matched,partial,clin_chem,baseline,711,44,0.5335,0.4989,0.0345,0.0074,0.0625,0.7681,0.7492,0.8197,0.8179,0.7343,0.7040,0.1603,0.1786,no clear difference
+holdout,bw_matched,partial,hematology,baseline,2085,86,0.4942,0.4871,0.0071,-0.0049,0.0196,0.7575,0.7523,0.7928,0.8006,0.7397,0.7280,0.1733,0.1811,no clear difference
+holdout,bw_matched,partial,inlife_bw,baseline,1486,318,0.6587,0.6401,0.0187,0.0034,0.0340,0.8340,0.8250,0.8937,0.8883,0.7574,0.7438,0.1063,0.1122,no clear difference
+holdout,bw_matched,partial,neoplasm,baseline,8895,141,0.5995,0.5944,0.0052,-0.0050,0.0148,0.8969,0.8950,0.7023,0.7022,0.9292,0.9271,0.0607,0.0625,no clear difference
+holdout,bw_matched,partial,nonneoplastic lesion,baseline,3041,171,0.8627,0.8623,0.0004,-0.0046,0.0050,0.9329,0.9326,0.9381,0.9372,0.9257,0.9264,0.0315,0.0312,no clear difference
+holdout,bw_matched,partial,organ_weight,baseline,1108,109,0.5942,0.5693,0.0249,0.0047,0.0444,0.8102,0.7972,0.7892,0.7858,0.8215,0.8033,0.1160,0.1278,no clear difference
+holdout,bw_matched,partial,terminal_bw,baseline,476,247,0.6784,0.6529,0.0254,-0.0022,0.0512,0.8392,0.8265,0.8838,0.8782,0.7945,0.7748,0.1027,0.1126,no clear difference
+holdout,bw_matched,partial,all,baseline,17802,318,0.7015,0.6928,0.0086,0.0035,0.0137,0.8694,0.8651,0.8389,0.8382,0.8828,0.8770,0.0812,0.0852,no clear difference
+holdout,bw_matched,vcg,clin_chem,baseline,362,23,0.3186,0.2848,0.0338,0.0027,0.0711,0.6486,0.6300,0.8330,0.8302,0.4993,0.4677,0.2767,0.2941,no clear difference
+holdout,bw_matched,vcg,hematology,baseline,1189,51,0.3102,0.3205,-0.0103,-0.0234,0.0025,0.6394,0.6447,0.8145,0.8231,0.5549,0.5586,0.3003,0.2977,no clear difference
+holdout,bw_matched,vcg,inlife_bw,baseline,1131,250,0.4818,0.4330,0.0488,0.0288,0.0689,0.7462,0.7229,0.8842,0.8780,0.5896,0.5469,0.1923,0.2123,no clear difference
+holdout,bw_matched,vcg,neoplasm,baseline,6985,113,0.4011,0.3962,0.0049,-0.0054,0.0146,0.8282,0.8243,0.5903,0.5968,0.8691,0.8635,0.1117,0.1165,no clear difference
+holdout,bw_matched,vcg,nonneoplastic lesion,baseline,2213,127,0.8030,0.8022,0.0008,-0.0052,0.0073,0.9066,0.9062,0.9466,0.9447,0.8465,0.8483,0.0613,0.0606,no clear difference
+holdout,bw_matched,vcg,organ_weight,baseline,640,70,0.4059,0.3938,0.0121,-0.0131,0.0343,0.7074,0.7000,0.7714,0.7714,0.6746,0.6634,0.2151,0.2225,no clear difference
+holdout,bw_matched,vcg,terminal_bw,baseline,343,184,0.4681,0.4298,0.0383,0.0021,0.0695,0.7303,0.7106,0.8424,0.8268,0.6358,0.6126,0.1975,0.2101,no clear difference
+holdout,bw_matched,vcg,all,baseline,12863,252,0.5668,0.5575,0.0093,0.0036,0.0149,0.8034,0.7982,0.8108,0.8110,0.8001,0.7927,0.1396,0.1448,no clear difference
+development,bw_ancova,partial,inlife_bw,baseline,725,174,0.5571,0.5581,-0.0010,-0.0527,0.0430,0.8030,0.7980,0.8815,0.8832,0.6599,0.6585,0.1206,0.1295,no clear difference
+development,bw_ancova,partial,organ_weight,baseline,374,35,0.5809,0.6047,-0.0238,-0.0676,0.0248,0.7960,0.8132,0.8017,0.7869,0.7923,0.8285,0.1266,0.1087,no clear difference
+development,bw_ancova,partial,terminal_bw,baseline,197,102,0.5764,0.5685,0.0078,-0.0606,0.0833,0.7871,0.7822,0.8617,0.8685,0.7189,0.7181,0.1470,0.1617,no clear difference
+development,bw_ancova,partial,all,baseline,1296,177,0.5897,0.5979,-0.0082,-0.0416,0.0257,0.7985,0.8000,0.8624,0.8617,0.7216,0.7338,0.1263,0.1284,no clear difference
+development,bw_ancova,vcg,inlife_bw,baseline,450,122,0.3848,0.3751,0.0097,-0.0538,0.0641,0.7313,0.7151,0.8792,0.8867,0.4808,0.4671,0.1927,0.2179,no clear difference
+development,bw_ancova,vcg,organ_weight,baseline,235,22,0.3310,0.4041,-0.0731,-0.1204,-0.0311,0.6662,0.7109,0.7394,0.7612,0.6284,0.6868,0.2451,0.2119,hurt
+development,bw_ancova,vcg,terminal_bw,baseline,124,65,0.4120,0.3456,0.0664,-0.0402,0.1674,0.6996,0.6565,0.8455,0.8426,0.5794,0.5429,0.2306,0.2839,no clear difference
+development,bw_ancova,vcg,all,baseline,809,125,0.4086,0.4160,-0.0074,-0.0510,0.0375,0.7075,0.7049,0.8480,0.8568,0.5567,0.5642,0.2137,0.2263,no clear difference
+holdout,bw_ancova,partial,inlife_bw,baseline,1486,318,0.6491,0.6401,0.0090,-0.0166,0.0336,0.8326,0.8250,0.8903,0.8883,0.7497,0.7438,0.1026,0.1122,no clear difference
+holdout,bw_ancova,partial,organ_weight,baseline,1108,109,0.5900,0.5693,0.0207,-0.0084,0.0505,0.8041,0.7972,0.7865,0.7858,0.8146,0.8033,0.1158,0.1278,no clear difference
+holdout,bw_ancova,partial,terminal_bw,baseline,476,247,0.6438,0.6529,-0.0091,-0.0606,0.0396,0.8257,0.8265,0.8578,0.8782,0.7837,0.7748,0.0936,0.1126,no clear difference
+holdout,bw_ancova,partial,all,baseline,3070,318,0.6420,0.6313,0.0106,-0.0080,0.0282,0.8213,0.8152,0.8570,0.8594,0.7841,0.7750,0.1060,0.1179,no clear difference
+holdout,bw_ancova,vcg,inlife_bw,baseline,1131,250,0.4920,0.4330,0.0590,0.0245,0.0923,0.7567,0.7229,0.8865,0.8780,0.5917,0.5469,0.1798,0.2123,helped
+holdout,bw_ancova,vcg,organ_weight,baseline,640,70,0.4236,0.3938,0.0298,-0.0041,0.0616,0.7140,0.7000,0.7747,0.7714,0.6792,0.6634,0.2040,0.2225,no clear difference
+holdout,bw_ancova,vcg,terminal_bw,baseline,343,184,0.4714,0.4298,0.0416,-0.0142,0.1001,0.7382,0.7106,0.8486,0.8268,0.6191,0.6126,0.1832,0.2101,no clear difference
+holdout,bw_ancova,vcg,all,baseline,2114,252,0.4829,0.4371,0.0458,0.0225,0.0706,0.7408,0.7140,0.8551,0.8461,0.6292,0.6009,0.1877,0.2150,no clear difference
+development,whole_group,partial,clin_chem,baseline,144,9,0.1798,0.2824,-0.1026,-0.1622,-0.0306,0.5427,0.6719,0.8100,0.6362,0.4399,0.6856,0.4045,0.2271,hurt
+development,whole_group,partial,hematology,baseline,312,12,0.3788,0.5053,-0.1266,-0.1569,-0.0917,0.6705,0.7522,0.9141,0.8133,0.5011,0.7098,0.2942,0.1712,hurt
+development,whole_group,partial,inlife_bw,baseline,480,119,0.4274,0.6064,-0.1790,-0.2107,-0.1438,0.7402,0.8148,0.9164,0.9018,0.4849,0.6888,0.2103,0.1271,hurt
+development,whole_group,partial,neoplasm,baseline,6508,635,0.5721,0.6563,-0.0842,-0.0964,-0.0720,0.8594,0.8914,0.7553,0.7897,0.8823,0.9137,0.0966,0.0708,hurt
+development,whole_group,partial,nonneoplastic lesion,baseline,281,14,0.6840,0.8278,-0.1439,-0.2163,-0.0851,0.8498,0.9160,0.8868,0.8918,0.7932,0.9532,0.0817,0.0185,hurt
+development,whole_group,partial,organ_weight,baseline,207,19,0.4848,0.6433,-0.1585,-0.1872,-0.1279,0.7471,0.8357,0.8236,0.8157,0.7080,0.8460,0.1932,0.1019,hurt
+development,whole_group,partial,terminal_bw,baseline,236,164,0.4767,0.6605,-0.1838,-0.2208,-0.1449,0.7299,0.8309,0.8896,0.8938,0.6204,0.7879,0.2252,0.1258,hurt
+development,whole_group,partial,all,baseline,8168,731,0.5862,0.6757,-0.0896,-0.1004,-0.0782,0.8327,0.8754,0.8106,0.8193,0.8397,0.8931,0.1219,0.0813,hurt
+development,whole_group,vcg,clin_chem,baseline,144,9,0.1241,0.1399,-0.0158,-0.0549,0.0323,0.4927,0.5514,0.8075,0.6800,0.3716,0.5019,0.4538,0.3597,no clear difference
+development,whole_group,vcg,hematology,baseline,312,12,0.3110,0.3300,-0.0190,-0.0417,0.0158,0.6290,0.6529,0.9184,0.8090,0.4277,0.5443,0.3375,0.2687,no clear difference
+development,whole_group,vcg,inlife_bw,baseline,480,119,0.3377,0.4106,-0.0728,-0.1178,-0.0264,0.7049,0.7310,0.9239,0.8967,0.3875,0.4911,0.2501,0.2078,hurt
+development,whole_group,vcg,neoplasm,baseline,6503,633,0.4017,0.4382,-0.0365,-0.0466,-0.0265,0.7798,0.8007,0.7061,0.7067,0.7959,0.8212,0.1675,0.1467,hurt
+development,whole_group,vcg,nonneoplastic lesion,baseline,281,14,0.7827,0.7553,0.0274,0.0048,0.0497,0.8957,0.8810,0.9065,0.8682,0.8793,0.9005,0.0477,0.0393,no clear difference
+development,whole_group,vcg,organ_weight,baseline,207,19,0.3947,0.4471,-0.0523,-0.0970,-0.0058,0.6915,0.7297,0.8271,0.7886,0.6223,0.6996,0.2500,0.1988,hurt
+development,whole_group,vcg,terminal_bw,baseline,236,164,0.3875,0.4288,-0.0413,-0.0874,0.0049,0.6792,0.7042,0.8766,0.8682,0.5439,0.5918,0.2706,0.2422,no clear difference
+development,whole_group,vcg,all,baseline,8163,729,0.4543,0.4848,-0.0305,-0.0394,-0.0214,0.7634,0.7847,0.7839,0.7654,0.7570,0.7908,0.1848,0.1591,hurt
+holdout,whole_group,partial,clin_chem,baseline,454,27,0.3273,0.4939,-0.1666,-0.2022,-0.1286,0.6439,0.7442,0.8795,0.8335,0.4774,0.6810,0.3062,0.1869,hurt
+holdout,whole_group,partial,hematology,baseline,1296,52,0.3253,0.5019,-0.1766,-0.2062,-0.1430,0.6368,0.7622,0.8784,0.8009,0.5193,0.7433,0.3234,0.1727,hurt
+holdout,whole_group,partial,inlife_bw,baseline,1188,252,0.4596,0.6480,-0.1884,-0.2120,-0.1651,0.7402,0.8272,0.9137,0.8929,0.5319,0.7484,0.2128,0.1144,hurt
+holdout,whole_group,partial,neoplasm,baseline,7506,118,0.5164,0.5969,-0.0805,-0.0939,-0.0686,0.8678,0.8928,0.6645,0.7144,0.9024,0.9232,0.0833,0.0656,hurt
+holdout,whole_group,partial,nonneoplastic lesion,baseline,2463,138,0.6973,0.8622,-0.1650,-0.1912,-0.1402,0.8578,0.9332,0.9499,0.9398,0.7262,0.9237,0.1127,0.0314,hurt
+holdout,whole_group,partial,organ_weight,baseline,782,77,0.4361,0.5680,-0.1319,-0.1602,-0.1021,0.7173,0.7999,0.8300,0.7805,0.6606,0.8097,0.2257,0.1265,hurt
+holdout,whole_group,partial,terminal_bw,baseline,373,190,0.4862,0.6389,-0.1527,-0.1889,-0.1122,0.7416,0.8192,0.9082,0.8691,0.5811,0.7711,0.2134,0.1166,hurt
+holdout,whole_group,partial,all,baseline,14062,262,0.5973,0.7023,-0.1050,-0.1154,-0.0947,0.8150,0.8704,0.8514,0.8431,0.7993,0.8821,0.1401,0.0823,hurt
+holdout,whole_group,vcg,clin_chem,baseline,454,27,0.2721,0.2802,-0.0082,-0.0558,0.0357,0.6094,0.6205,0.8896,0.8372,0.4113,0.4673,0.3449,0.3121,no clear difference
+holdout,whole_group,vcg,hematology,baseline,1296,52,0.2545,0.3180,-0.0635,-0.0915,-0.0336,0.5826,0.6426,0.8910,0.8245,0.4326,0.5541,0.3818,0.3000,hurt
+holdout,whole_group,vcg,inlife_bw,baseline,1186,251,0.3649,0.4252,-0.0602,-0.0873,-0.0332,0.6964,0.7226,0.9060,0.8834,0.4457,0.5303,0.2524,0.2139,hurt
+holdout,whole_group,vcg,neoplasm,baseline,7506,118,0.3569,0.3864,-0.0295,-0.0410,-0.0178,0.8000,0.8192,0.6139,0.6007,0.8318,0.8565,0.1437,0.1226,hurt
+holdout,whole_group,vcg,nonneoplastic lesion,baseline,2449,137,0.7928,0.7957,-0.0029,-0.0147,0.0074,0.9019,0.9023,0.9636,0.9405,0.8127,0.8470,0.0766,0.0625,no clear difference
+holdout,whole_group,vcg,organ_weight,baseline,782,77,0.3223,0.3714,-0.0491,-0.0795,-0.0181,0.6483,0.6879,0.8071,0.7645,0.5683,0.6493,0.2871,0.2332,hurt
+holdout,whole_group,vcg,terminal_bw,baseline,373,190,0.3559,0.4301,-0.0742,-0.1152,-0.0311,0.6755,0.7137,0.8869,0.8473,0.4718,0.5850,0.2690,0.2114,hurt
+holdout,whole_group,vcg,all,baseline,14046,261,0.5174,0.5485,-0.0311,-0.0380,-0.0240,0.7711,0.7927,0.8412,0.8132,0.7407,0.7838,0.1810,0.1508,hurt
+development,hierarchical,partial,clin_chem,baseline,144,9,0.6678,0.2824,0.3854,0.3174,0.4540,0.8750,0.6719,0.6737,0.6362,0.9524,0.6856,0.0344,0.2271,helped
+development,hierarchical,partial,hematology,baseline,312,12,0.7790,0.5053,0.2737,0.2045,0.3533,0.8944,0.7522,0.8305,0.8133,0.9389,0.7098,0.0361,0.1712,helped
+development,hierarchical,partial,inlife_bw,baseline,480,119,0.7651,0.6064,0.1587,0.1132,0.2071,0.8854,0.8148,0.8820,0.9018,0.8903,0.6888,0.0448,0.1271,helped
+development,hierarchical,partial,organ_weight,baseline,207,19,0.7744,0.6433,0.1311,0.0861,0.1840,0.9002,0.8357,0.8279,0.8157,0.9372,0.8460,0.0415,0.1019,helped
+development,hierarchical,partial,terminal_bw,baseline,236,164,0.7490,0.6605,0.0885,0.0394,0.1419,0.8788,0.8309,0.8526,0.8938,0.8968,0.7879,0.0612,0.1258,helped
+development,hierarchical,partial,all,baseline,1379,217,0.7713,0.5856,0.1857,0.1463,0.2231,0.8875,0.7916,0.8472,0.8553,0.9202,0.7399,0.0441,0.1435,helped
+development,hierarchical,vcg,clin_chem,baseline,144,9,0.0866,0.1399,-0.0533,-0.2162,0.1475,0.7153,0.5514,0.1250,0.6800,0.9423,0.5019,0.0417,0.3597,no clear difference
+development,hierarchical,vcg,hematology,baseline,312,12,0.3583,0.3300,0.0284,-0.0878,0.1377,0.7083,0.6529,0.4453,0.8090,0.8913,0.5443,0.0641,0.2687,no clear difference
+development,hierarchical,vcg,inlife_bw,baseline,480,119,0.3482,0.4106,-0.0624,-0.1580,0.0316,0.6604,0.7310,0.5387,0.8967,0.8367,0.4911,0.0667,0.2078,no clear difference
+development,hierarchical,vcg,organ_weight,baseline,207,19,0.5277,0.4471,0.0806,-0.0475,0.1814,0.7923,0.7297,0.6571,0.7886,0.8613,0.6996,0.0918,0.1988,no clear difference
+development,hierarchical,vcg,terminal_bw,baseline,236,164,0.3764,0.4288,-0.0523,-0.1661,0.0614,0.7119,0.7042,0.5104,0.8682,0.8500,0.5918,0.0890,0.2422,no clear difference
+development,hierarchical,vcg,all,baseline,1379,217,0.3851,0.3949,-0.0098,-0.0714,0.0497,0.7056,0.6898,0.5016,0.8478,0.8712,0.5615,0.0711,0.2420,no clear difference
+holdout,hierarchical,partial,clin_chem,baseline,454,27,0.7627,0.4939,0.2688,0.1938,0.3403,0.8862,0.7442,0.8218,0.8335,0.9318,0.6810,0.0400,0.1869,helped
+holdout,hierarchical,partial,hematology,baseline,1296,52,0.7376,0.5019,0.2357,0.1950,0.2727,0.8853,0.7622,0.8103,0.8009,0.9218,0.7433,0.0526,0.1727,helped
+holdout,hierarchical,partial,inlife_bw,baseline,1188,252,0.8056,0.6480,0.1576,0.1266,0.1918,0.9033,0.8272,0.8951,0.8929,0.9131,0.7484,0.0395,0.1144,helped
+holdout,hierarchical,partial,organ_weight,baseline,782,77,0.6974,0.5680,0.1295,0.0984,0.1651,0.8666,0.7999,0.7803,0.7805,0.9100,0.8097,0.0598,0.1265,helped
+holdout,hierarchical,partial,terminal_bw,baseline,373,190,0.7944,0.6389,0.1555,0.1138,0.2039,0.8973,0.8192,0.8787,0.8691,0.9153,0.7711,0.0432,0.1166,helped
+holdout,hierarchical,partial,all,baseline,4093,259,0.7686,0.5822,0.1864,0.1613,0.2117,0.8882,0.7915,0.8465,0.8437,0.9179,0.7542,0.0479,0.1434,helped
+holdout,hierarchical,vcg,clin_chem,baseline,454,27,0.3197,0.2802,0.0395,-0.0441,0.1169,0.6938,0.6205,0.3830,0.8372,0.9135,0.4673,0.0507,0.3121,no clear difference
+holdout,hierarchical,vcg,hematology,baseline,1296,52,0.3452,0.3180,0.0271,-0.0553,0.0956,0.7384,0.6426,0.4198,0.8245,0.8933,0.5541,0.0718,0.3000,no clear difference
+holdout,hierarchical,vcg,inlife_bw,baseline,1186,251,0.4347,0.4252,0.0096,-0.0560,0.0744,0.7108,0.7226,0.5743,0.8834,0.8741,0.5303,0.0573,0.2139,no clear difference
+holdout,hierarchical,vcg,organ_weight,baseline,782,77,0.3286,0.3714,-0.0428,-0.1153,0.0214,0.7212,0.6879,0.4466,0.7645,0.8596,0.6493,0.0934,0.2332,no clear difference
+holdout,hierarchical,vcg,terminal_bw,baseline,373,190,0.3848,0.4301,-0.0453,-0.1279,0.0421,0.6944,0.7137,0.5246,0.8473,0.8579,0.5850,0.0724,0.2114,no clear difference
+holdout,hierarchical,vcg,all,baseline,4091,258,0.3900,0.3789,0.0111,-0.0314,0.0503,0.7182,0.6785,0.4897,0.8415,0.8811,0.5622,0.0694,0.2555,no clear difference
+development,tarone,partial,neoplasm,baseline_trend,6508,635,0.4976,0.7167,-0.2191,-0.2468,-0.1932,0.8869,0.9458,0.7400,0.8273,0.9026,0.9585,0.0880,0.0375,hurt
+development,tarone,partial,all,baseline_trend,6508,635,0.4976,0.7167,-0.2191,-0.2455,-0.1927,0.8869,0.9458,0.7400,0.8273,0.9026,0.9585,0.0880,0.0375,hurt
+development,tarone,vcg,neoplasm,baseline_trend,6503,633,0.4034,0.5091,-0.1058,-0.1396,-0.0685,0.8658,0.8903,0.6300,0.7472,0.8909,0.9056,0.0986,0.0853,hurt
+development,tarone,vcg,all,baseline_trend,6503,633,0.4034,0.5091,-0.1058,-0.1453,-0.0644,0.8658,0.8903,0.6300,0.7472,0.8909,0.9056,0.0986,0.0853,hurt
+holdout,tarone,partial,neoplasm,baseline_trend,7506,118,0.4984,0.7065,-0.2082,-0.2448,-0.1744,0.9007,0.9515,0.7147,0.7820,0.9180,0.9672,0.0750,0.0300,hurt
+holdout,tarone,partial,all,baseline_trend,7506,118,0.4984,0.7065,-0.2082,-0.2500,-0.1771,0.9007,0.9515,0.7147,0.7820,0.9180,0.9672,0.0750,0.0300,hurt
+holdout,tarone,vcg,neoplasm,baseline_trend,7506,118,0.4417,0.5303,-0.0886,-0.1255,-0.0549,0.8900,0.9129,0.6453,0.6979,0.9128,0.9329,0.0798,0.0614,hurt
+holdout,tarone,vcg,all,baseline_trend,7506,118,0.4417,0.5303,-0.0886,-0.1266,-0.0537,0.8900,0.9129,0.6453,0.6979,0.9128,0.9329,0.0798,0.0614,hurt
