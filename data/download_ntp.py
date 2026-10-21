@@ -1,8 +1,6 @@
 """Download the public NTP/DTT individual-animal data used in this project.
 
-Nothing in this script is specific to the analysis: it only fetches the files
-listed in ``MANIFEST`` (the versioned "DTT Integrated High Value Datasets"
-published through CEBS) plus the CEBS Study Catalog, which supplies the
+Nothing in this script is specific to the analysis: it only fetches the files listed in ``MANIFEST`` (the versioned "DTT Integrated High Value Datasets" published through CEBS) plus the CEBS Study Catalog, which supplies the
 laboratory for each study.
 
 Sources
@@ -14,16 +12,8 @@ Sources
 * CEBS Study Catalog (laboratory, start year, route, vehicle per study):
   https://cebs-ext.niehs.nih.gov/datasets/search/cebs-study-catalog
 
-The two CSV collections are large (in-life body weights 5.8 GB, histopathology
-2.5 GB).  Use ``--skip-large`` to download only the four spreadsheets
-(~385 MB); the pipeline then skips the body-weight-trajectory and incidence
+The two CSV collections are large (in-life body weights 5.8 GB, histopathology 2.5 GB).  Use ``--skip-large`` to download only the four spreadsheets (~385 MB); the pipeline then skips the body-weight-trajectory and incidence
 endpoints and says so.
-
-Usage
------
-    python data/download_ntp.py              # everything into data/raw/
-    python data/download_ntp.py --skip-large
-    python data/download_ntp.py --dest /other/dir --no-verify
 """
 from __future__ import annotations
 
