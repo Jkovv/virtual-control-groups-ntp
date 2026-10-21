@@ -221,6 +221,42 @@ def method_comparison(vs: pd.DataFrame, out: Path, set_label: str = "holdout") -
     return out
 
 
+def ceiling(vs_split: pd.DataFrame, reliability: pd.DataFrame, out: Path, set_label: str = "holdout") -> Path:
+    """Agreement with a reference half of the concurrent control that shares no
+    animal with the method, against the ceiling set by the other half alone."""
+    rel = reliability[(reliability["set"] == set_label) & (reliability["method"] == "split_half")]
+    rel = rel.set_index("domain")
+    t = vs_split[(vs_split["set"] == set_label) & (vs_split["domain"] != "all")]
+    domains = [d for d in DOMAIN_ORDER if d in set(rel.index)]
+    methods = [m for m in ("baseline", "hierarchical") if m in set(t["method"])]
+    labels = {"baseline": "half + sampled historical animals", "hierarchical": "half + robust MAP prior"}
+    colors = {"baseline": COLORS["agree"], "hierarchical": COLORS["fp"]}
+
+    fig, ax = plt.subplots(figsize=(9, 4.4))
+    y = np.arange(len(domains))
+    ax.barh(y, [rel.loc[d, "kappa"] for d in domains], height=0.62, color="#dcdcdc",
+            label="half of the control group alone (ceiling)")
+    for off, m in zip((-0.14, 0.14), methods):
+        d = t[t["method"] == m].set_index("domain")
+        xs = [d.loc[dom, "kappa_method"] if dom in d.index else np.nan for dom in domains]
+        ax.scatter(xs, y + off, color=colors[m], zorder=3, s=26, edgecolor="k", linewidth=0.4, label=labels[m])
+    for i, dom in enumerate(domains):
+        ax.text(rel.loc[dom, "kappa"] + 0.012, i, f"{rel.loc[dom, 'kappa']:.2f}", va="center", fontsize=7.5)
+    ax.set_yticks(y, [DOMAIN_LABELS.get(d, d) for d in domains])
+    ax.invert_yaxis()
+    ax.set_xlim(0, 1.0)
+    ax.set_xlabel("Cohen's kappa against a disjoint half of the concurrent control")
+    ax.legend(fontsize=8, frameon=False, loc="lower right")
+    ax.set_title("Nothing reaches the noise ceiling, and borrowing does not raise it",
+                 fontsize=10, loc="left")
+    fig.suptitle(f"Held-out studies: methods scored against control animals they never saw "
+                 f"(start year >= {C.CUTOFF_YEAR})", fontsize=9.5, x=0.01, ha="left", y=1.0)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out)
+    plt.close(fig)
+    return out
+
+
 def make_all(tables: dict[str, pd.DataFrame], fig_dir: Path = C.FIGURES_DIR) -> list[Path]:
     fig_dir.mkdir(parents=True, exist_ok=True)
     return [headline(tables, fig_dir / "headline_agreement.png"),

@@ -126,6 +126,10 @@ def step_compare(args: argparse.Namespace) -> None:
                                                                               sampling="whole_group")
     by_domain.to_csv(C.TABLES_DIR / "between_study_variance_by_domain.csv", index=False, float_format="%.4f")
     fig = plots.method_comparison(tables["methods_vs_baseline"], C.FIGURES_DIR / "methods_comparison.png")
+    figures = [fig]
+    if "reliability_ceiling" in tables:
+        figures.append(plots.ceiling(tables["methods_vs_split_half"], tables["reliability_ceiling"],
+                                     C.FIGURES_DIR / "noise_ceiling.png"))
     vs = tables["methods_vs_baseline"]
     summary = {
         "cutoff_year": C.CUTOFF_YEAR,
@@ -135,8 +139,14 @@ def step_compare(args: argparse.Namespace) -> None:
         "verdicts_holdout": {f"{r.method}/{r.mode}/{r.domain}": f"{r.verdict} (kappa {r.kappa_diff:+.3f}, "
                                                                 f"95% CI {r.ci_low:+.3f} to {r.ci_high:+.3f})"
                              for r in vs[vs["set"] == "holdout"].itertuples()},
-        "figure": fig.relative_to(C.ROOT).as_posix(),
+        "figures": [f.relative_to(C.ROOT).as_posix() for f in figures],
     }
+    if "reliability_ceiling" in tables:
+        rel = tables["reliability_ceiling"]
+        rel = rel[(rel["set"] == "holdout") & (rel["method"] == "split_half")]
+        summary["noise_ceiling_holdout"] = {r.domain: {"agreement": round(float(r.agreement), 4),
+                                                       "kappa": round(float(r.kappa), 4)}
+                                            for r in rel.itertuples()}
     (C.RESULTS_DIR / "methods_summary.json").write_text(json.dumps(summary, indent=2))
     log.info("method comparison written: %d paired comparisons", len(vs))
 
