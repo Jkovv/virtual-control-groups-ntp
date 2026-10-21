@@ -8,6 +8,7 @@ controls and fills the rest from the pool.
 """
 from __future__ import annotations
 
+import zlib
 from dataclasses import dataclass
 
 import numpy as np
@@ -31,6 +32,12 @@ class Target:
     laboratory: object
     year: float
     dtxsid: object
+
+
+def stable_key(*parts: object) -> int:
+    """Deterministic integer from strings, for seeding.  Python's ``hash`` is
+    salted per process, so it cannot be used for reproducible random streams."""
+    return zlib.crc32("|".join(map(str, parts)).encode())
 
 
 def target_from_row(row: pd.Series, sex: str) -> Target:

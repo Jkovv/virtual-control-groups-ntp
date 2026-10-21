@@ -65,7 +65,7 @@ def _welch_p(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def evaluate_continuous(unit: Unit) -> list[list]:
-    rng = np.random.default_rng(unit.seed + hash((unit.target.study, unit.target.sex)) % 100_000)
+    rng = np.random.default_rng([unit.seed, M.stable_key(unit.target.study, unit.target.sex)])
     out: list[list] = []
     tgt = unit.target
     if unit.hist_controls.empty:
@@ -137,7 +137,7 @@ def _incidence_matrix(roster: pd.DataFrame, lesions: pd.DataFrame, findings: lis
 
 
 def evaluate_incidence(unit: Unit) -> list[list]:
-    rng = np.random.default_rng(unit.seed + 7 + hash((unit.target.study, unit.target.sex)) % 100_000)
+    rng = np.random.default_rng([unit.seed, M.stable_key(unit.target.study, unit.target.sex), 7])
     out: list[list] = []
     tgt = unit.target
     roster = unit.roster.reset_index(drop=True)
