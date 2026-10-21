@@ -16,11 +16,20 @@ lesion incidences, 81% for neoplasm incidences, but only 60-73% for clinical
 pathology, organ weights and body weights, where a constant "not significant"
 verdict would do about as well.**
 
+**That 0.52 has to be read against what two control groups can agree on at all.
+Splitting each real control group into two disjoint halves and testing the
+treated groups against each half gives kappa 0.64 on the same endpoints. That is
+the noise ceiling, and the virtual control group reaches 84% of it overall:
+91-93% for lesion and tumour incidences, but under half for clinical chemistry
+and hematology.**
+
 **Three pre-specified improvements were then tested on held-out studies
 (`docs/analysis_plan.md`). Body-weight matching and ANCOVA helped a little,
-whole-group sampling and Tarone's test hurt, and the one large gain, hierarchical
-borrowing in a partial VCG, turned out on a post-hoc check to come from dropping
-the virtual animals rather than from borrowing.**
+whole-group sampling and Tarone's test hurt. The one large gain, hierarchical
+borrowing in a partial virtual control group, disappears once the comparison is
+made against control animals the method never saw: adding historical animals to
+half a control group makes it agree with the other half worse, and the
+hierarchical prior only matches it.**
 
 ![Headline figure](results/figures/headline_agreement.png)
 
@@ -125,9 +134,15 @@ have no pool of sufficient size. Laboratory is the single most useful criterion.
 Keeping half of the concurrent control animals and replacing the other half
 raises agreement from 0.78 to 0.87 (kappa 0.52 to 0.68) at the same matching
 level and almost halves the false positive share (16% to 9%), while coverage
-improves because a smaller pool suffices. The post-hoc check below shows that
-most of this gain is not borrowing: simply analysing the kept half on its own,
-with no virtual animals at all, does better still.
+improves because a smaller pool suffices.
+
+Those partial numbers flatter the method, and the amount matters. The reference
+is the full concurrent control group, which contains the half the method keeps,
+so half the animals sit on both sides of the comparison. Scored against a half
+it never saw, the same partial VCG drops from kappa 0.68 to 0.55, below the 0.64
+that half a control group reaches on its own. The section on the disjoint-half
+comparison takes this apart; every partial number in this README that is
+measured against the full concurrent control carries the same inflation.
 
 ### Drift
 
@@ -169,8 +184,57 @@ leukaemia incidences recorded in individual lymph nodes (50-60%).
   borrowing in a partial VCG, +0.186 kappa) is matched by simply analysing the
   kept concurrent half with no borrowing at all.
 * Nothing here closed the gap for clinical chemistry and hematology, the two
-  domains with the largest between-study variance.
+  domains with the largest between-study variance; they reach under half of the
+  agreement two halves of a real control group reach.
+* Measured against control animals it never saw, no form of borrowing beat
+  simply using half of the concurrent control group. The best of them matched
+  it; the rest were worse.
+* For tumour and lesion incidences the virtual control group is already within a
+  tenth of the attainable agreement, so there is little left for a better method
+  to win there.
 
+
+## How much agreement is attainable?
+
+Two control groups never agree perfectly, so no virtual control group can. The
+split-half benchmark measures that limit directly: each concurrent control group
+is split into two disjoint halves, the treated groups are tested against each
+half, and the agreement between the two conclusions is recorded (20 random
+splits per study, sex and endpoint). The two halves come from the same animals,
+the same week and the same analyser, so the only thing that separates them is
+sampling noise.
+
+| Endpoint domain | Ceiling: two halves of the same control | Full VCG | Share of the ceiling reached |
+|---|---:|---:|---:|
+| Non-neoplastic lesions | 0.87 | 0.79 | 91% |
+| Neoplasms (poly-3) | 0.41 | 0.38 | 93% |
+| In-life body weight | 0.71 | 0.42 | 59% |
+| Terminal body weight | 0.66 | 0.41 | 63% |
+| Organ weights | 0.59 | 0.35 | 59% |
+| Hematology | 0.61 | 0.28 | 45% |
+| Clinical chemistry | 0.58 | 0.27 | 46% |
+| **All endpoints** | **0.64** | **0.53** | **84%** |
+
+Cohen's kappa, held-out studies, each column on the same 15,946 study x sex x
+endpoint units. The "all endpoints" row is dominated by neoplasms, which are
+most of the units.
+
+This reframes the per-domain results above. The incidence endpoints looked good
+and are good: the virtual control group is within a tenth of the ceiling, so
+almost everything that separates it from the concurrent control is noise that a
+second real control group would have produced as well. The neoplasm ceiling is
+low in absolute terms (kappa 0.41, sensitivity 0.52) because tumour comparisons
+on 50 animals are inherently unstable, not because the virtual controls are bad.
+Clinical chemistry and hematology are the opposite case: they reach less than
+half of their ceiling, and the missing part is the between-study variance the
+next section quantifies.
+
+One caveat on reading the ceiling. Both halves have n/2 animals, while the full
+VCG comparison is n against n. Larger groups agree better, so the true ceiling
+for a full-size comparison is somewhat higher than the numbers above, and the
+shares in the last column are therefore upper bounds. The benchmark is exact
+only for the half-size comparisons, which is where it is used as a comparator
+further down.
 
 ## Why do full VCGs produce false positives?
 
@@ -259,6 +323,11 @@ concurrent control differs from its own replacement (Welch test).
 | Tarone, beta-binomial prior | partial | 7,506 | 0.90 | 0.92 | 0.50 | 0.72 | 0.92 | 0.08 | - |
 | *Kept concurrent half alone (post-hoc)* | partial | 18,958 | 0.90 | 0.70 | 0.77 | 0.84 | 0.93 | 0.05 | - |
 
+Every row in `partial` mode, including the post-hoc one, is scored against a
+reference that contains the concurrent animals the method kept, so the partial
+block is inflated relative to the `full` block. The disjoint-half comparison
+below removes that overlap and reverses the ordering.
+
 ### Did they help? (paired, same endpoints, held-out studies)
 
 Kappa change against the current method on exactly the endpoints both can serve,
@@ -340,6 +409,14 @@ animals at all. This was not in the plan and is recorded as a deviation in
 `docs/analysis_plan.md`; it uses separate random streams, so none of the
 pre-specified numbers change.
 
+**This first comparison is biased in favour of the partial methods, and the next
+one repairs it.** The reference conclusion is the full concurrent control group,
+which *contains* the half that every partial method keeps. Half of the animals
+are therefore on both sides of the comparison, which inflates the agreement of
+anything built on that half, the kept-half analysis most of all. The numbers
+below are still worth reporting, because they show the direction, but they
+cannot be read as absolute performance.
+
 | Comparison (partial mode, held-out) | Endpoints | Kappa change (95% CI) | Verdict |
 |---|---:|---|---|
 | Kept half alone vs current partial VCG | 18,958 | +0.091 (+0.076 to +0.106) | **helped** |
@@ -349,19 +426,46 @@ pre-specified numbers change.
 
 Halving the concurrent control and analysing it on its own agrees with the full
 concurrent control better than any VCG does: kappa 0.77 against 0.68 for the
-current partial VCG. The robust MAP prior does not beat it (-0.018 here, +0.007
-on the development set: no consistent difference either way). So the headline
-gain of the hierarchical partial VCG is mostly the gain from *not adding biased
-virtual animals*; the borrowing itself adds little. For continuous endpoints in
-this data set, a halved concurrent control analysed on its own is as good as
-anything built from public historical controls, and it uses the same number of
-animals as a partial VCG.
+current partial VCG. The robust MAP prior does not beat it. The direction is
+clear, but the overlap means the sizes are not trustworthy, so the comparison
+was redone against a half the method never sees.
+
+### The same comparison without overlap
+
+The disjoint-half benchmark gives every partial method a reference made of
+animals it does not contain: the control group is split into halves A and B, each
+method is built on A, and all of them are scored against the conclusion from B.
+"Half alone" is then exactly the split-half ceiling, and the question becomes
+whether adding borrowed information to half a control group helps it predict the
+other half.
+
+| Method built on half A | Endpoints | Kappa vs half B | Ceiling (A alone) | Change (95% CI) | Verdict |
+|---|---:|---:|---:|---|---|
+| A + sampled historical animals | 15,946 | 0.55 | 0.64 | -0.083 (-0.097 to -0.068) | **hurt** |
+| A + robust MAP prior | 4,086 | 0.66 | 0.67 | -0.010 (-0.024 to +0.003) | no clear difference |
+| A + historical animals, trend test | 8,207 | 0.50 | 0.64 | -0.135 (-0.162 to -0.112) | **hurt** |
+| A + beta-binomial prior (Tarone) | 7,506 | 0.42 | 0.64 | -0.224 (-0.263 to -0.188) | **hurt** |
+
+Held-out studies; the development set gives the same four verdicts. Per domain,
+adding sampled historical animals hurts everywhere, from -0.03 for neoplasms to
+-0.23 for hematology, and the robust MAP prior is within +/-0.03 of the ceiling
+in every continuous domain.
+
+![Noise ceiling](results/figures/noise_ceiling.png)
+
+So the honest version of the partial-VCG result is this. Scored against animals
+it never saw, half of a concurrent control group analysed on its own is the best
+of these options. Adding historical animals to it makes the conclusion worse.
+Hierarchical borrowing is the only approach that does not make it worse, and it
+does not make it better either. The apparent kappa 0.68 of the current partial
+VCG against the full concurrent control drops to 0.55 once the shared animals
+are removed from the reference, which is below what half a control group
+achieves on its own.
 
 The exception is the trend test on neoplasms, where losing half the control
-animals does cost power (sensitivity 0.78 to 0.62) and the partial VCG is better
-than the halved control. Rare-event endpoints are the case where borrowing has
-something to offer, and they are also the case where Tarone's test, as
-implemented here, overshot.
+animals costs real power (sensitivity 0.78 to 0.62). Rare-event endpoints are
+where borrowing has something to offer, and they are also where Tarone's test,
+as implemented here, overshot.
 
 ## How to reproduce
 
@@ -445,6 +549,11 @@ tests/       pytest suite: statistics against published and library reference
   held-out studies are also the more recent and better documented ones. The
   settings were fixed in advance but never tuned, so no claim is made that they
   are the best ones for any of the three methods.
+* **The ceiling is measured at half size.** Both halves of the split have n/2
+  animals, so the benchmark is exact for the half-size comparisons and
+  conservative for the full-size ones: two independent full-size control groups
+  would agree better than two halves do. A full VCG that reaches the half-size
+  ceiling has not been shown to be noise-limited.
 * **Agreement is not accuracy.** Every verdict in this README is about agreeing
   with the concurrent control. A method that agrees less could in principle be
   closer to the truth, and the hierarchical full VCG is the clearest case: it is
