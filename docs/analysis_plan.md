@@ -65,6 +65,21 @@ is counted as not covered, never silently replaced):
   the +/- 2 SD window;
 * `whole_group`, `hierarchical`, `tarone`: at least 3 historical control groups.
 
+## What agreement is attainable
+
+Added with deviation 2. Two control groups of the same study never agree
+perfectly, so no method can. The split-half benchmark measures that ceiling
+directly: the concurrent control is split into two disjoint halves, the treated
+groups are tested against each half, and the agreement between the two
+conclusions is recorded. It contains no between-study variance at all, only
+sampling noise, and both halves have n/2 animals.
+
+That makes it the exact ceiling for comparisons at half size (the partial
+methods scored against a disjoint half) and a conservative one for comparisons
+at full size: two independent full-size control groups would agree better than
+two halves do, so a full VCG reaching the half-size ceiling has not been shown
+to be noise-limited.
+
 ## Metrics
 
 Exactly as in the current analysis, at endpoint level (an endpoint is significant
