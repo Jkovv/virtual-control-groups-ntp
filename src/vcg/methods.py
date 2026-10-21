@@ -396,6 +396,63 @@ def run(data: dict[str, pd.DataFrame], workers: int = 1, n_draws: int = C.N_DRAW
 
 
 # ----------------------------------------------------------------------------
+# between-study variance of control groups
+# ----------------------------------------------------------------------------
+
+def implied_false_positive_rate(icc: np.ndarray, n: int = 10, sampling: str = "individual") -> np.ndarray:
+    """False positive rate of one two-sided t test of a treated group against a
+    virtual control group of the same size ``n``, when there is no treatment
+    effect but a between-study share of variance ``icc`` = tau^2 / (tau^2 + sigma^2).
+
+    The treated group carries its own study's offset (variance tau^2).
+
+    * ``individual``: the VCG's ``n`` animals come from different studies, so its
+      offset averages out but its animals vary by sigma^2 + tau^2.  The statistic
+      has variance (2 sigma^2 + (n + 1) tau^2) / (2 sigma^2 + tau^2).
+    * ``whole_group``: the VCG is one other study's control group with its own
+      offset.  The statistic has variance 1 + n tau^2 / sigma^2.
+
+    The statistic is taken as sqrt(var) times a t variable with 2n - 2 degrees
+    of freedom, so the rate is exactly 5% when icc = 0.
+    """
+    from scipy import stats
+
+    icc = np.asarray(icc, dtype=float)
+    ratio = icc / (1 - icc)                      # tau^2 / sigma^2
+    if sampling == "individual":
+        var_z = (2 + (n + 1) * ratio) / (2 + ratio)
+    elif sampling == "whole_group":
+        var_z = 1 + n * ratio
+    else:
+        raise ValueError(sampling)
+    df = 2 * n - 2
+    return 2 * stats.t.sf(stats.t.ppf(0.975, df) / np.sqrt(var_z), df)
+
+
+def between_study_variance(data: dict[str, pd.DataFrame], level: str = C.METHOD_LEVEL) -> pd.DataFrame:
+    """Between-study share of control-group variance per endpoint, within strata
+    of studies that match each other at ``level``.
+
+    For each stratum (species, sex, design and the level's criteria) and endpoint
+    with at least ``MIN_HIST_GROUPS`` control groups, DerSimonian-Laird gives
+    tau^2 and the pooled within-group variance gives sigma^2.
+    """
+    criteria = [c for c in C.MATCH_LEVELS[level] if c != "period"]
+    ctrl = E._controls_with_metadata(data["measurements"], data["studies"])
+    keys = ["species", "sex", "design", *criteria, "domain", "endpoint"]
+    rows = []
+    for key, g in ctrl.groupby(keys, observed=True, dropna=True, sort=False):
+        groups = [v.to_numpy(dtype=float) for _, v in g.groupby("study", observed=True)["value"]]
+        groups = [v for v in groups if v.size >= 2]
+        if len(groups) < C.MIN_HIST_GROUPS:
+            continue
+        re, s2 = S.historical_random_effects(groups)
+        rows.append(dict(zip(keys, key), n_groups=len(groups), tau2=re.tau2, sigma2=s2,
+                         icc=re.tau2 / (re.tau2 + s2) if re.tau2 + s2 > 0 else np.nan))
+    return pd.DataFrame(rows)
+
+
+# ----------------------------------------------------------------------------
 # summaries
 # ----------------------------------------------------------------------------
 

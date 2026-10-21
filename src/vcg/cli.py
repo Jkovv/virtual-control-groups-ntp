@@ -101,6 +101,15 @@ def step_compare(args: argparse.Namespace) -> None:
     tables = methods.compare(df, seed=args.seed)
     for name, table in tables.items():
         table.to_csv(C.TABLES_DIR / f"{name}.csv", index=False, float_format="%.4f")
+    variance = methods.between_study_variance(prepare.load_processed(C.PROCESSED_DIR))
+    variance.to_csv(C.TABLES_DIR / "between_study_variance.csv", index=False, float_format="%.5g")
+    by_domain = variance.groupby("domain").agg(strata_endpoints=("icc", "size"), median_icc=("icc", "median"),
+                                               q25_icc=("icc", lambda x: x.quantile(0.25)),
+                                               q75_icc=("icc", lambda x: x.quantile(0.75))).reset_index()
+    by_domain["implied_fp_individual"] = methods.implied_false_positive_rate(by_domain["median_icc"])
+    by_domain["implied_fp_whole_group"] = methods.implied_false_positive_rate(by_domain["median_icc"],
+                                                                              sampling="whole_group")
+    by_domain.to_csv(C.TABLES_DIR / "between_study_variance_by_domain.csv", index=False, float_format="%.4f")
     fig = plots.method_comparison(tables["methods_vs_baseline"], C.FIGURES_DIR / "methods_comparison.png")
     vs = tables["methods_vs_baseline"]
     summary = {

@@ -163,3 +163,24 @@ def test_neoplasm_methods_include_trend_tests():
     assert tarone["n_draws"] == 1 and tarone["domain"] == "neoplasm"
     # a strong dose-related increase is found by the reference and by Tarone's test
     assert tarone["sig_conc"] == 1 and tarone["sig_vcg"] == 1
+
+
+@pytest.mark.parametrize("sampling", ["individual", "whole_group"])
+def test_implied_false_positive_rate_matches_simulation(sampling):
+    from scipy import stats
+    assert MM.implied_false_positive_rate(0.0, sampling=sampling) == pytest.approx(0.05, abs=0.002)
+    rng = np.random.default_rng(0)
+    sims, n, tau, icc = 20000, 10, 0.5, 0.2               # tau^2 = 0.25, sigma^2 = 1
+    treated = rng.normal(rng.normal(0, tau, (sims, 1)), 1.0, (sims, n))
+    if sampling == "individual":
+        control = rng.normal(rng.normal(0, tau, (sims, n)), 1.0)        # one study per animal
+    else:
+        control = rng.normal(rng.normal(0, tau, (sims, 1)), 1.0, (sims, n))
+    p = stats.ttest_ind(treated, control, axis=1).pvalue
+    assert (p < 0.05).mean() == pytest.approx(MM.implied_false_positive_rate(icc, n, sampling), abs=0.02)
+
+
+def test_whole_groups_are_predicted_to_be_worse_than_individual_sampling():
+    icc = np.array([0.05, 0.1, 0.3])
+    assert (MM.implied_false_positive_rate(icc, sampling="whole_group")
+            > MM.implied_false_positive_rate(icc, sampling="individual")).all()
