@@ -294,8 +294,8 @@ positives.
 
 The three changes below were specified, with their settings and the rule for
 calling one helpful, in `docs/analysis_plan.md`, committed before any of them was
-run. Target studies that started before 1990 are the development set (904
-studies); the 334 studies from 1990 on are held out and are the basis of every
+run. Target studies that started before 1990 are the development set (997
+studies); the 375 studies from 1990 on are held out and are the basis of every
 number in this section. All methods use matching level L3 and 20 draws.
 
 1. **Body-weight matching** (Gurjanov et al. 2024): historical animals are drawn

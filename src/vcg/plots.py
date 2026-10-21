@@ -248,7 +248,7 @@ def ceiling(vs_split: pd.DataFrame, reliability: pd.DataFrame, out: Path, set_la
     ax.set_xlim(0, 1.0)
     ax.set_xlabel("Cohen's kappa against a disjoint half of the concurrent control")
     ax.legend(fontsize=7.5, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=2)
-    ax.set_title("Only the MAP prior matches half a control group; borrowed animals fall short of it",
+    ax.set_title("Methods scored against a disjoint half of the concurrent control, per endpoint domain",
                  fontsize=10, loc="left")
     fig.suptitle(f"Held-out studies: methods scored against control animals they never saw "
                  f"(start year >= {C.CUTOFF_YEAR})", fontsize=9.5, x=0.01, ha="left", y=1.02)

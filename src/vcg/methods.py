@@ -812,7 +812,10 @@ def compare(df: pd.DataFrame, resamples: int = C.BOOTSTRAP_RESAMPLES, seed: int 
     rng = np.random.default_rng(seed)
     tables = {
         "methods_by_domain": metrics(df, ["set", "method", "mode", "domain"]),
-        "methods_overall": metrics(df[df["method"] != "baseline_trend"], ["set", "method", "mode"]),
+        # The "_trend" methods are the Cochran-Armitage references of ``tarone``
+        # (and of its post-hoc and disjoint variants), not methods in their own
+        # right, so the overall table lists ``tarone`` but none of them.
+        "methods_overall": metrics(df[~df["method"].astype(str).str.endswith("_trend")], ["set", "method", "mode"]),
     }
     tables["methods_vs_baseline"] = _comparisons(df[df["mode"] != "disjoint"],
                                                  list(COMPARATOR.items()), rng, resamples)
