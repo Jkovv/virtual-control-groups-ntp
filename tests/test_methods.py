@@ -242,3 +242,49 @@ def test_reliability_needs_at_least_six_control_animals():
     small = unit.continuous[unit.continuous["is_control"]].head(5)
     unit.continuous = pd.concat([small, keep], ignore_index=True)
     assert MM.evaluate_reliability(unit, "holdout") == []
+
+
+def test_half_size_vcg_matches_the_ceiling_group_size():
+    """``vcg_half`` must hold exactly as many animals as the reference half, so
+    that comparing it with ``split_half`` is like for like."""
+    df = _frame(MM.evaluate_reliability(_unit(tau=1.0), "holdout"))
+    assert {"vcg_half", "split_half"} <= set(df["method"])
+    inc = _frame(MM.evaluate_reliability(_chronic_unit(), "holdout"))
+    assert {"vcg_half", "vcg_half_trend"} <= set(inc["method"])
+    # same reference draws for both, so the comparison is paired
+    both = df[df["method"].isin(["vcg_half", "split_half"])]
+    assert both.groupby("endpoint")["sig_conc"].nunique().eq(1).all()
+
+
+def test_half_size_vcg_agrees_less_than_a_real_half_when_studies_differ():
+    units = [_unit(seed=s, tau=1.0, effect=0.35) for s in range(30)]
+    df = pd.concat([_frame(MM.evaluate_reliability(u, "holdout")) for u in units], ignore_index=True)
+    ceiling = df[df["method"] == "split_half"]["agree"].mean()
+    virtual = df[df["method"] == "vcg_half"]["agree"].mean()
+    assert virtual < ceiling
+    # with no between-study variance the two are close
+    flat = pd.concat([_frame(MM.evaluate_reliability(_unit(seed=s, tau=0.0, effect=0.35), "holdout"))
+                      for s in range(30)], ignore_index=True)
+    assert flat[flat["method"] == "vcg_half"]["agree"].mean() == pytest.approx(
+        flat[flat["method"] == "split_half"]["agree"].mean(), abs=0.08)
+
+
+def test_half_size_vcg_is_size_matched_to_the_reference_half():
+    """``vcg_half`` holds exactly as many animals as the reference half, so that
+    comparing it with ``split_half`` is like for like."""
+    df = _frame(MM.evaluate_reliability(_unit(tau=1.0), "holdout"))
+    assert {"vcg_half", "split_half"} <= set(df["method"])
+    inc = _frame(MM.evaluate_reliability(_chronic_unit(), "holdout"))
+    assert {"vcg_half", "vcg_half_trend"} <= set(inc["method"])
+    both = df[df["method"].isin(["vcg_half", "split_half"])]
+    assert both.groupby("endpoint")["sig_conc"].nunique().eq(1).all()   # same reference draws
+
+
+def test_half_size_vcg_trails_a_real_half_only_when_studies_differ():
+    units = [_unit(seed=s, tau=1.0, effect=0.35) for s in range(30)]
+    df = pd.concat([_frame(MM.evaluate_reliability(u, "holdout")) for u in units], ignore_index=True)
+    assert df[df["method"] == "vcg_half"]["agree"].mean() < df[df["method"] == "split_half"]["agree"].mean()
+    flat = pd.concat([_frame(MM.evaluate_reliability(_unit(seed=s, tau=0.0, effect=0.35), "holdout"))
+                      for s in range(30)], ignore_index=True)
+    assert flat[flat["method"] == "vcg_half"]["agree"].mean() == pytest.approx(
+        flat[flat["method"] == "split_half"]["agree"].mean(), abs=0.08)

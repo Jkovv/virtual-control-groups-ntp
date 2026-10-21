@@ -19,9 +19,9 @@ verdict would do about as well.**
 **That 0.52 has to be read against what two control groups can agree on at all.
 Splitting each real control group into two disjoint halves and testing the
 treated groups against each half gives kappa 0.64 on the same endpoints. That is
-the noise ceiling, and the virtual control group reaches 84% of it overall:
-91-93% for lesion and tumour incidences, but under half for clinical chemistry
-and hematology.**
+the noise ceiling, and the virtual control group reaches 84% of it overall (77%
+in a size-matched check): 91-93% for lesion and tumour incidences, but under half
+for clinical chemistry and hematology.**
 
 **Three pre-specified improvements were then tested on held-out studies
 (`docs/analysis_plan.md`). Body-weight matching and ANCOVA helped a little,
@@ -204,20 +204,20 @@ splits per study, sex and endpoint). The two halves come from the same animals,
 the same week and the same analyser, so the only thing that separates them is
 sampling noise.
 
-| Endpoint domain | Ceiling: two halves of the same control | Full VCG | Share of the ceiling reached |
-|---|---:|---:|---:|
-| Non-neoplastic lesions | 0.87 | 0.79 | 91% |
-| Neoplasms (poly-3) | 0.41 | 0.38 | 93% |
-| In-life body weight | 0.71 | 0.42 | 59% |
-| Terminal body weight | 0.66 | 0.41 | 63% |
-| Organ weights | 0.59 | 0.35 | 59% |
-| Hematology | 0.61 | 0.28 | 45% |
-| Clinical chemistry | 0.58 | 0.27 | 46% |
-| **All endpoints** | **0.64** | **0.53** | **84%** |
+| Endpoint domain | Ceiling: two halves of the same control | Full VCG | Share reached | Size-matched check |
+|---|---:|---:|---:|---:|
+| Non-neoplastic lesions | 0.87 | 0.79 | 91% | 93% |
+| Neoplasms (poly-3) | 0.41 | 0.38 | 93% | 90% |
+| Terminal body weight | 0.66 | 0.41 | 63% | 64% |
+| In-life body weight | 0.71 | 0.42 | 59% | 63% |
+| Organ weights | 0.59 | 0.35 | 59% | 61% |
+| Clinical chemistry | 0.58 | 0.27 | 46% | 48% |
+| Hematology | 0.61 | 0.28 | 45% | 40% |
+| **All endpoints** | **0.64** | **0.53** | **84%** | **77%** |
 
-Cohen's kappa, held-out studies, each column on the same 15,946 study x sex x
-endpoint units. The "all endpoints" row is dominated by neoplasms, which are
-most of the units.
+Cohen's kappa, held-out studies. The first three numeric columns are on the same
+15,946 study x sex x endpoint units; the last column is explained below. The "all
+endpoints" row is dominated by neoplasms, which are most of the units.
 
 This reframes the per-domain results above. The incidence endpoints looked good
 and are good: the virtual control group is within a tenth of the ceiling, so
@@ -229,12 +229,25 @@ Clinical chemistry and hematology are the opposite case: they reach less than
 half of their ceiling, and the missing part is the between-study variance the
 next section quantifies.
 
-One caveat on reading the ceiling. Both halves have n/2 animals, while the full
-VCG comparison is n against n. Larger groups agree better, so the true ceiling
-for a full-size comparison is somewhat higher than the numbers above, and the
-shares in the last column are therefore upper bounds. The benchmark is exact
-only for the half-size comparisons, which is where it is used as a comparator
-further down.
+### Size-matched sensitivity analysis
+
+The ceiling is measured on two halves of n/2 animals each, while the primary VCG
+comparison is n against n. Larger groups agree better, so the share column above
+is an upper bound rather than an exact figure. One extra configuration makes the
+comparison exact: draw a virtual control group of n/2 animals, with no concurrent
+animals in it, and score it against the disjoint half B. The virtual group and
+the ceiling then have the same size and the same reference, so their ratio is
+like for like. That is the last column of the table.
+
+Per domain the two columns agree within a few points and never change the
+ordering, so the size mismatch is not distorting the conclusions; the overall row
+moves more (84% to 77%) because a half-size virtual group is noisier and because
+the domain mix differs between the two sets of units. **This is a sensitivity
+analysis for reading the ceiling, not a proposed design.** A virtual control
+group of half the usual size is not what anyone would run, and the full-size
+configuration stays the primary result because it is what the VCG literature
+evaluates (Andaya et al. 2024; the VICT3R standard operating procedure annexed
+to the EMA draft opinion).
 
 ## Why do full VCGs produce false positives?
 
@@ -445,11 +458,15 @@ other half.
 | A + robust MAP prior | 4,086 | 0.66 | 0.67 | -0.010 (-0.024 to +0.003) | no clear difference |
 | A + historical animals, trend test | 8,207 | 0.50 | 0.64 | -0.135 (-0.162 to -0.112) | **hurt** |
 | A + beta-binomial prior (Tarone) | 7,506 | 0.42 | 0.64 | -0.224 (-0.263 to -0.188) | **hurt** |
+| *virtual animals only, same size as A* | 18,702 | 0.49 | 0.64 | -0.147 (-0.166 to -0.127) | **hurt** |
 
-Held-out studies; the development set gives the same four verdicts. Per domain,
-adding sampled historical animals hurts everywhere, from -0.03 for neoplasms to
--0.23 for hematology, and the robust MAP prior is within +/-0.03 of the ceiling
-in every continuous domain.
+Held-out studies; the development set gives the same verdicts. Per domain, adding
+sampled historical animals hurts everywhere, from -0.03 for neoplasms to -0.23
+for hematology, and the robust MAP prior is within +/-0.03 of the ceiling in
+every continuous domain. The last row is the size-matched configuration from the
+sensitivity analysis: replacing a real half with an equally sized virtual one
+costs 0.147 of kappa, which is the price of the borrowing on its own, with group
+size held fixed.
 
 ![Noise ceiling](results/figures/noise_ceiling.png)
 
@@ -466,6 +483,92 @@ The exception is the trend test on neoplasms, where losing half the control
 animals costs real power (sensitivity 0.78 to 0.62). Rare-event endpoints are
 where borrowing has something to offer, and they are also where Tarone's test,
 as implemented here, overshot.
+
+## Contributions
+
+A search of the virtual control group literature (ALTEX, Frontiers in
+Pharmacology and Toxicology, Toxicologic Pathology, Regulatory Toxicology and
+Pharmacology, Toxicological Sciences, the eTRANSAFE and VICT3R outputs, and the
+EMA draft qualification opinion) found no use of a split-half or noise-ceiling
+benchmark: agreement with the concurrent control is reported against an implicit
+100%, or against a conventional threshold such as 90%. `docs/literature_check.md`
+records what was searched, what each study uses instead and the closest prior
+work. Two things in this repository follow from that gap.
+
+### 1. A split-half concordance ceiling as an evaluation benchmark
+
+**Definition.** For one study, sex and endpoint with a concurrent control group
+of n animals, draw a random partition of those animals into two disjoint halves A
+and B of floor(n/2) animals each. Run the same treated-versus-control test twice,
+once with A as the control and once with B, and record whether the two
+conclusions agree at the chosen alpha. Repeat over random partitions (20 here)
+and aggregate across endpoints with the same statistics used for the method under
+test. The result is the agreement that two control groups from the same study,
+the same shipment, the same week and the same analyser reach, so it contains
+sampling noise and nothing else.
+
+**Assumptions.** The halves must be disjoint, or the benchmark is inflated by
+shared animals, which is exactly the error the earlier version of this analysis
+made and the disjoint-reference section corrects. Any method compared against the
+ceiling must use a control group of the same size and be scored against the same
+half, or the comparison confounds group size with method.
+
+**What it buys.** It converts "the virtual control group agrees with the
+concurrent control for 78% of endpoints" into "it reaches 84% of what is
+attainable", and it separates two very different situations that raw agreement
+cannot. Tumour incidences look mediocre on raw agreement (kappa 0.38) and are in
+fact close to the limit (93% of a ceiling of 0.41), because the poly-3 comparison
+on 50 animals is itself unstable. Clinical chemistry looks similar on raw
+agreement (0.27) but reaches under half of a much higher ceiling, so there the
+method, not the test, is the binding constraint.
+
+**Limitations.** The ceiling is an estimate with its own sampling error, and at
+n/2 it is measured on smaller groups than a full-size VCG uses, which the
+size-matched analysis above addresses. It bounds agreement with one statistical
+test at one alpha, not scientific validity: a method could agree less and be
+closer to the truth. It takes the concurrent control as the reference, so it
+says nothing about whether that reference is right. And it is a ceiling for
+*concordance studies*, which is the design this field uses; it does not speak to
+designs that validate against a known effect.
+
+**Proposed as a reporting standard.** A virtual control group study that reports
+agreement should report the split-half ceiling on the same endpoints, and the
+share of it reached, per endpoint domain. It costs one extra resampling loop over
+data the study already has, it needs no historical data, and without it an
+agreement figure cannot be read: 80% agreement is poor for an endpoint whose
+ceiling is 0.95 and close to optimal for one whose ceiling is 0.82.
+
+The benchmark itself is old. Split-half reliability goes back to Spearman and
+Brown in 1910, and the noise ceiling as an upper bound on attainable model-data
+agreement is routine in computational neuroscience, where split-half and
+resampling estimators are compared directly (Nili et al. 2014; Lage-Castellanos
+et al. 2019). The contribution claimed here is its application to virtual control
+groups, not the method. If it has been used in this field before, please open an
+issue and the claim will be corrected.
+
+### 2. A between-study variance decomposition that predicts where VCGs fail
+
+For each endpoint, within strata of studies that match each other on the criteria
+a VCG would use, the variance of control animals is split into a within-study
+part and a between-study part. The second part is what a virtual control group
+cannot reproduce, and it is turned into a predicted false positive rate in closed
+form, separately for sampling individual animals and for borrowing whole groups.
+
+The decomposition is not itself new. The IWGT report on historical negative
+control data does the same for genetic toxicology, separating animal from study
+variance and recommending that historical controls be used only where animal
+factors dominate (Dertinger et al. 2023). What is added here is the link to an
+error rate: the between-study share predicts the false positive rate of a VCG
+comparison, ranks the endpoint domains in the order actually observed, and
+predicted in advance that whole-group sampling would be worse than sampling
+individuals, which the pre-specified comparison then confirmed. The prediction is
+approximate and runs slightly below the observed rates (0.16-0.29 predicted
+against 0.22-0.33 observed), so it is a design guide, not a calibration.
+
+Both contributions are demonstrated on public NTP data with a reproducible
+pipeline, which is itself the smaller third point: the VCG evaluations published
+so far rest on proprietary databases (eTOX, Genentech, Bayer, Roche), and none of
+them can be re-run by a reader.
 
 ## How to reproduce
 
@@ -552,8 +655,9 @@ tests/       pytest suite: statistics against published and library reference
 * **The ceiling is measured at half size.** Both halves of the split have n/2
   animals, so the benchmark is exact for the half-size comparisons and
   conservative for the full-size ones: two independent full-size control groups
-  would agree better than two halves do. A full VCG that reaches the half-size
-  ceiling has not been shown to be noise-limited.
+  would agree better than two halves do. The size-matched sensitivity analysis
+  shows the per-domain shares move by a few points at most, but a full VCG that
+  reaches the half-size ceiling has still not been shown to be noise-limited.
 * **Agreement is not accuracy.** Every verdict in this README is about agreeing
   with the concurrent control. A method that agrees less could in principle be
   closer to the truth, and the hierarchical full VCG is the clearest case: it is
@@ -603,6 +707,40 @@ consulted but not used because it publishes group-level summaries, not animals.
   https://doi.org/10.1111/biom.12242 (the robust prior used for partial VCGs)
 * Tarone RE. The use of historical control information in testing for a trend in
   proportions. *Biometrics* 1982;38(1):215-220. https://doi.org/10.2307/2530304
+* Wright PSR, Smith GF, Briggs KA, Thomas R, Maglennon G, et al. Retrospective
+  analysis of the potential use of virtual control groups in preclinical toxicity
+  assessment using the eTOX database. *Regul Toxicol Pharmacol* 2023;138:105309.
+  https://doi.org/10.1016/j.yrtph.2022.105309
+* Duchateau-Nguyen G, Piraino M, Draganov DI, Maliver P, Muster W, et al.
+  Analysis of rat toxicology studies: statistical agreement between virtual and
+  concurrent controls in detecting treatment effects on liver enzymes.
+  *Front Pharmacol* 2026;17:1704002. https://doi.org/10.3389/fphar.2026.1704002
+* Kim J, Kim Y, Park D, Kim SK, Kang MG. A practical approach for regulatory
+  acceptance of virtual control groups: vehicle pooling and biological relevance
+  assessment. *Front Toxicol* 2026;8:1888158.
+  https://doi.org/10.3389/ftox.2026.1888158
+* Steger-Hartmann T, et al. Virtual control groups in non-clinical toxicology: a
+  replicability challenge. *ALTEX* 2025. https://doi.org/10.14573/altex.2503061
+* Dertinger SD, Li D, Beevers C, Douglas GR, Heflich RH, et al. Assessing the
+  quality and making appropriate use of historical negative control data: a
+  report of the International Workshop on Genotoxicity Testing.
+  *Environ Mol Mutagen* 2023;66:144-165. https://doi.org/10.1002/em.22541
+  (variance components of historical controls, for control limits in genetic
+  toxicology)
+
+Methodological lineage of the ceiling, from outside toxicology:
+
+* Spearman C. Correlation calculated from faulty data. *Br J Psychol*
+  1910;3:271-295; Brown W. Some experimental results in the correlation of mental
+  abilities. *Br J Psychol* 1910;3:296-322. (split-half reliability)
+* Nili H, Wingfield C, Walther A, Su L, Marslen-Wilson W, Kriegeskorte N. A
+  toolbox for representational similarity analysis. *PLoS Comput Biol*
+  2014;10(4):e1003553. https://doi.org/10.1371/journal.pcbi.1003553 (noise ceiling
+  as an upper bound on attainable model-data agreement)
+* Lage-Castellanos A, Valente G, Formisano E, De Martino F. Methods for computing
+  the maximum performance of computational models of fMRI responses. *PLoS Comput
+  Biol* 2019;15(3):e1006397. https://doi.org/10.1371/journal.pcbi.1006397
+  (split-half versus resampling estimators of the ceiling)
 * Bailer AJ, Portier CJ. Effects of treatment-induced mortality and tumor-induced
   mortality on tests for carcinogenicity in small samples. *Biometrics*
   1988;44(2):417-431. https://doi.org/10.2307/2531856 (poly-k test)

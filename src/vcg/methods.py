@@ -45,8 +45,9 @@ POSTHOC_PAIRS = [("half_concurrent", "baseline"), ("hierarchical", "half_concurr
                  ("half_concurrent_trend", "baseline_trend"), ("tarone", "half_concurrent_trend")]
 # Comparisons against a reference that shares no animal with the method under
 # test (mode "disjoint"): the comparator is half of the control group on its own.
-DISJOINT_PAIRS = [("baseline", "split_half"), ("hierarchical", "split_half"),
-                  ("baseline_trend", "split_half_trend"), ("tarone", "split_half_trend")]
+DISJOINT_PAIRS = [("vcg_half", "split_half"), ("baseline", "split_half"), ("hierarchical", "split_half"),
+                  ("vcg_half_trend", "split_half_trend"), ("baseline_trend", "split_half_trend"),
+                  ("tarone", "split_half_trend")]
 SETS = ("development", "holdout")
 
 
@@ -458,6 +459,9 @@ def evaluate_reliability(unit: E.Unit, set_label: str) -> list[list]:
     The other methods start from the same half A and add information to it, so
     they are measured against a reference that shares no animal with them:
 
+    * ``vcg_half``      historical animals only, as many as B has, so that the
+      comparison with ``split_half`` is exactly like for like: same sizes, same
+      reference, real control animals replaced by virtual ones,
     * ``baseline``      A plus uniformly sampled historical animals,
     * ``hierarchical``  A plus the robust MAP prior,
     * ``baseline_trend``/``tarone``/``split_half_trend`` the same for the
@@ -504,6 +508,13 @@ def evaluate_reliability(unit: E.Unit, set_label: str) -> list[list]:
                 sig = (S.dunnett_many(groups, controls).pvalue < C.ALPHA).any(axis=1)
                 rows.append(_row_paired(base, "baseline", "disjoint", sig_b, sig, n0, hv.size,
                                         len(np.unique(hg))))
+            if hv.size >= 2 * m:
+                # Same size as half B and as half A, so the comparison with
+                # ``split_half`` is exact: virtual animals in place of real ones.
+                controls = np.stack([hv[rng.choice(hv.size, m, replace=False)] for _ in range(R)])
+                sig = (S.dunnett_many(groups, controls).pvalue < C.ALPHA).any(axis=1)
+                rows.append(_row_paired(base, "vcg_half", "disjoint", sig_b, sig, n0, hv.size,
+                                        len(np.unique(hg))))
             hist_groups = [g for g in (hv[hg == s] for s in np.unique(hg)) if g.size >= 2]
             if len(hist_groups) >= C.MIN_HIST_GROUPS:
                 re, s2_hist = S.historical_random_effects(hist_groups)
@@ -547,6 +558,8 @@ def evaluate_reliability(unit: E.Unit, set_label: str) -> list[list]:
     n_virt = n0 - m
     picks = ([rng.choice(n_hist, n_virt, replace=False) for _ in range(R)]
              if n_hist >= 2 * n0 else None)
+    picks_half = ([rng.choice(n_hist, m, replace=False) for _ in range(R)]
+                  if n_hist >= 2 * m else None)
     g_labels, g_inv = (np.unique(hg, return_inverse=True) if n_hist else (np.array([]), None))
 
     def pairwise_any(aff, c_aff, c_days, c_tmax) -> bool:
@@ -570,6 +583,9 @@ def evaluate_reliability(unit: E.Unit, set_label: str) -> list[list]:
             sig = np.array([pairwise_any(aff, np.r_[aff[a], hmat[p, j]], np.r_[t_days[a], h_days[p]],
                                          np.r_[t_max[a], h_tmax[p]]) for a, p in zip(a_sets, picks)])
             rows.append(_row_paired(base, "baseline", "disjoint", sig_b, sig, n0, n_hist, g_labels.size))
+        if picks_half is not None:
+            sig = np.array([pairwise_any(aff, hmat[p, j], h_days[p], h_tmax[p]) for p in picks_half])
+            rows.append(_row_paired(base, "vcg_half", "disjoint", sig_b, sig, n0, n_hist, g_labels.size))
         if not neoplastic:
             continue
         x_t = np.array([aff[x].sum() for x in dose_rows], dtype=float)
@@ -584,6 +600,9 @@ def evaluate_reliability(unit: E.Unit, set_label: str) -> list[list]:
             sig = np.array([trend(aff[a].sum() + hmat[p, j].sum(), m + p.size)
                             for a, p in zip(a_sets, picks)])
             rows.append(_row_paired(base, "baseline_trend", "disjoint", sig_b_tr, sig, n0, n_hist, g_labels.size))
+        if picks_half is not None:
+            sig = np.array([trend(hmat[p, j].sum(), p.size) for p in picks_half])
+            rows.append(_row_paired(base, "vcg_half_trend", "disjoint", sig_b_tr, sig, n0, n_hist, g_labels.size))
         if g_labels.size >= C.MIN_HIST_GROUPS:
             x_h = np.bincount(g_inv, weights=hmat[:, j].astype(float), minlength=g_labels.size)
             n_h = np.bincount(g_inv, minlength=g_labels.size).astype(float)

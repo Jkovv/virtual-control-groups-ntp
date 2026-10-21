@@ -228,15 +228,16 @@ def ceiling(vs_split: pd.DataFrame, reliability: pd.DataFrame, out: Path, set_la
     rel = rel.set_index("domain")
     t = vs_split[(vs_split["set"] == set_label) & (vs_split["domain"] != "all")]
     domains = [d for d in DOMAIN_ORDER if d in set(rel.index)]
-    methods = [m for m in ("baseline", "hierarchical") if m in set(t["method"])]
-    labels = {"baseline": "half + sampled historical animals", "hierarchical": "half + robust MAP prior"}
-    colors = {"baseline": COLORS["agree"], "hierarchical": COLORS["fp"]}
+    methods = [m for m in ("vcg_half", "baseline", "hierarchical") if m in set(t["method"])]
+    labels = {"vcg_half": "virtual animals only, same size as the half (size-matched check)",
+              "baseline": "half + sampled historical animals", "hierarchical": "half + robust MAP prior"}
+    colors = {"vcg_half": COLORS["fn"], "baseline": COLORS["agree"], "hierarchical": COLORS["fp"]}
 
     fig, ax = plt.subplots(figsize=(9, 4.4))
     y = np.arange(len(domains))
     ax.barh(y, [rel.loc[d, "kappa"] for d in domains], height=0.62, color="#dcdcdc",
             label="half of the control group alone (ceiling)")
-    for off, m in zip((-0.14, 0.14), methods):
+    for off, m in zip(np.linspace(-0.17, 0.17, len(methods)), methods):
         d = t[t["method"] == m].set_index("domain")
         xs = [d.loc[dom, "kappa_method"] if dom in d.index else np.nan for dom in domains]
         ax.scatter(xs, y + off, color=colors[m], zorder=3, s=26, edgecolor="k", linewidth=0.4, label=labels[m])
@@ -246,8 +247,8 @@ def ceiling(vs_split: pd.DataFrame, reliability: pd.DataFrame, out: Path, set_la
     ax.invert_yaxis()
     ax.set_xlim(0, 1.0)
     ax.set_xlabel("Cohen's kappa against a disjoint half of the concurrent control")
-    ax.legend(fontsize=8, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=3)
-    ax.set_title("Adding historical animals lowers the agreement; the MAP prior matches it",
+    ax.legend(fontsize=7.5, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=2)
+    ax.set_title("Only the MAP prior matches half a control group; borrowed animals fall short of it",
                  fontsize=10, loc="left")
     fig.suptitle(f"Held-out studies: methods scored against control animals they never saw "
                  f"(start year >= {C.CUTOFF_YEAR})", fontsize=9.5, x=0.01, ha="left", y=1.02)
