@@ -39,6 +39,10 @@ ENDPOINT_COLUMNS = ["set", "study", "sex", "species", "design", "domain", "endpo
 METHOD_ORDER = ["baseline", "bw_matched", "bw_ancova", "whole_group", "hierarchical", "baseline_trend", "tarone"]
 COMPARATOR = {"bw_matched": "baseline", "bw_ancova": "baseline", "whole_group": "baseline",
               "hierarchical": "baseline", "tarone": "baseline_trend"}
+# Post-hoc, not in the analysis plan: is a partial-mode gain due to the borrowed
+# information, or only to dropping the virtual animals?
+POSTHOC_PAIRS = [("half_concurrent", "baseline"), ("hierarchical", "half_concurrent"),
+                 ("half_concurrent_trend", "baseline_trend"), ("tarone", "half_concurrent_trend")]
 SETS = ("development", "holdout")
 
 
@@ -340,6 +344,90 @@ def evaluate_incidence(unit: E.Unit, set_label: str) -> list[list]:
 
 
 # ----------------------------------------------------------------------------
+# post-hoc control: the kept concurrent half alone, without any borrowing
+# ----------------------------------------------------------------------------
+
+def evaluate_half_concurrent(unit: E.Unit, set_label: str) -> list[list]:
+    """Post-hoc (not in the analysis plan): analyse the partial design using only
+    the kept half of the concurrent controls, without any virtual animals.
+
+    This separates two effects of the partial VCG methods: removing half of the
+    concurrent animals, and what replaces them.  Separate random streams keep the
+    pre-specified results unchanged.  Methods: ``half_concurrent`` (Dunnett,
+    Fisher, poly-3) and ``half_concurrent_trend`` (Cochran-Armitage).
+    """
+    tgt = unit.target
+    rows: list[list] = []
+    R = unit.n_draws
+    if not unit.continuous.empty and not unit.hist_controls.empty:
+        hist_endpoints = set(unit.hist_controls["endpoint"])
+        for (domain, endpoint), d in unit.continuous.groupby(["domain", "endpoint"], sort=False):
+            if endpoint not in hist_endpoints:
+                continue
+            is_ctrl = d["is_control"].to_numpy(dtype=bool)
+            ctrl = d.loc[is_ctrl, "value"].to_numpy(dtype=float)
+            treated = d.loc[~is_ctrl]
+            doses = [x for x in sorted(treated["dose"].unique()) if (treated["dose"] == x).sum() >= 2]
+            groups = [treated.loc[treated["dose"] == x, "value"].to_numpy(dtype=float) for x in doses]
+            n0 = ctrl.size
+            if n0 < 3 or not groups or n0 // 2 < 2:
+                continue
+            rng = _rng(unit, endpoint, "half_concurrent")
+            sig_ref = bool((S.dunnett(groups, ctrl).pvalue < C.ALPHA).any())
+            kept = np.stack([rng.choice(ctrl, n0 // 2, replace=False) for _ in range(R)])
+            sig = (S.dunnett_many(groups, kept).pvalue < C.ALPHA).any(axis=1)
+            base = [set_label, tgt.study, tgt.sex, tgt.species, tgt.design, domain, endpoint]
+            rows.append(_row(base, "half_concurrent", "partial", sig_ref, sig, None, n0, 0, 0))
+
+    roster = unit.roster.reset_index(drop=True)
+    if roster.empty or unit.lesions.empty or unit.hist_roster.empty:
+        return rows
+    neoplastic = tgt.design == "chronic"
+    les = unit.lesions[unit.lesions["neoplastic"].eq("Neoplastic") == neoplastic]
+    counts = les.groupby(["tissue", "morphology"])["animal"].nunique()
+    findings = [f for f, n in counts.items() if n >= C.MIN_AFFECTED_FOR_INCIDENCE]
+    is_ctrl = roster["is_control"].to_numpy(dtype=bool)
+    ctrl_idx = np.flatnonzero(is_ctrl)
+    n0 = ctrl_idx.size
+    doses = sorted(roster.loc[~is_ctrl, "dose"].unique())
+    dose_rows = [m for m in ((roster["dose"] == x).to_numpy() & ~is_ctrl for x in doses) if m.sum() >= 2]
+    if not findings or n0 < 3 or not dose_rows:
+        return rows
+    domain = "neoplasm" if neoplastic else "nonneoplastic lesion"
+    mat = E._incidence_matrix(roster, les, findings)
+    t_days = roster["days"].to_numpy(dtype=float)
+    t_max = roster["t_max"].to_numpy(dtype=float)
+    rng = _rng(unit, "incidence", "half_concurrent")
+    keeps = [rng.choice(ctrl_idx, n0 // 2, replace=False) for _ in range(R)]
+    scores = np.arange(len(dose_rows) + 1, dtype=float)
+    n_treated = np.array([m.sum() for m in dose_rows], dtype=float)
+
+    def pairwise_any(c_idx, aff) -> bool:
+        for m in dose_rows:
+            if neoplastic:
+                _, p = S.poly3_test(aff[m], S.poly_k_weights(t_days[m], aff[m], t_max[m]),
+                                    aff[c_idx], S.poly_k_weights(t_days[c_idx], aff[c_idx], t_max[c_idx]))
+            else:
+                p = S.fisher_exact_2x2(aff[m].sum(), m.sum(), aff[c_idx].sum(), c_idx.size)[0]
+            if p < C.ALPHA:
+                return True
+        return False
+
+    for j, (tissue, morph) in enumerate(findings):
+        aff = mat[:, j]
+        base = [set_label, tgt.study, tgt.sex, tgt.species, tgt.design, domain, f"{tissue}: {morph}"]
+        sig = np.array([pairwise_any(k, aff) for k in keeps])
+        rows.append(_row(base, "half_concurrent", "partial", pairwise_any(ctrl_idx, aff), sig, None, n0, 0, 0))
+        if neoplastic:
+            x_t = np.array([aff[m].sum() for m in dose_rows], dtype=float)
+            ref = S.cochran_armitage(np.r_[aff[ctrl_idx].sum(), x_t], np.r_[n0, n_treated], scores)[1] < C.ALPHA
+            sig = np.array([S.cochran_armitage(np.r_[aff[k].sum(), x_t], np.r_[k.size, n_treated], scores)[1]
+                            < C.ALPHA for k in keeps])
+            rows.append(_row(base, "half_concurrent_trend", "partial", bool(ref), sig, None, n0, 0, 0))
+    return rows
+
+
+# ----------------------------------------------------------------------------
 # orchestration
 # ----------------------------------------------------------------------------
 
@@ -374,21 +462,29 @@ def _run_unit(item: tuple[E.Unit, str]) -> list[list]:
     return evaluate_continuous(unit, label) + evaluate_incidence(unit, label)
 
 
+def _run_unit_posthoc(item: tuple[E.Unit, str]) -> list[list]:
+    unit, label = item
+    return evaluate_half_concurrent(unit, label)
+
+
 def run(data: dict[str, pd.DataFrame], workers: int = 1, n_draws: int = C.N_DRAWS, seed: int = C.SEED,
-        limit: int | None = None) -> pd.DataFrame:
+        limit: int | None = None, posthoc: bool = False) -> pd.DataFrame:
+    """Evaluate the pre-specified methods or, with ``posthoc``, only the
+    half-concurrent control analysis."""
+    worker = _run_unit_posthoc if posthoc else _run_unit
     items = build_units(data, n_draws=n_draws, seed=seed, limit=limit)
     log.info("method comparison: %d study/sex units (%d held-out) with %d workers", len(items),
              sum(lbl == "holdout" for _, lbl in items), workers)
     rows: list[list] = []
     if workers > 1:
         with ProcessPoolExecutor(max_workers=workers) as pool:
-            for i, part in enumerate(pool.map(_run_unit, items, chunksize=4)):
+            for i, part in enumerate(pool.map(worker, items, chunksize=4)):
                 rows.extend(part)
                 if i % 100 == 0:
                     log.info("  %d / %d units done, %d endpoint rows", i + 1, len(items), len(rows))
     else:
         for i, item in enumerate(items):
-            rows.extend(_run_unit(item))
+            rows.extend(worker(item))
     df = pd.DataFrame(rows, columns=ENDPOINT_COLUMNS)
     for c in ["set", "study", "sex", "species", "design", "domain", "endpoint", "method", "mode"]:
         df[c] = df[c].astype("category")
@@ -532,8 +628,18 @@ def compare(df: pd.DataFrame, resamples: int = C.BOOTSTRAP_RESAMPLES, seed: int 
         "methods_by_domain": metrics(df, ["set", "method", "mode", "domain"]),
         "methods_overall": metrics(df[df["method"] != "baseline_trend"], ["set", "method", "mode"]),
     }
+    tables["methods_vs_baseline"] = _comparisons(df, list(COMPARATOR.items()), rng, resamples)
+    if df["method"].isin(["half_concurrent", "half_concurrent_trend"]).any():
+        posthoc = _comparisons(df[df["mode"] == "partial"], POSTHOC_PAIRS, rng, resamples)
+        posthoc.insert(0, "analysis", "post-hoc")
+        tables["posthoc_half_concurrent"] = posthoc
+    return tables
+
+
+def _comparisons(df: pd.DataFrame, pairs: list[tuple[str, str]], rng: np.random.Generator,
+                 resamples: int) -> pd.DataFrame:
     rows = []
-    for method, comparator in COMPARATOR.items():
+    for method, comparator in pairs:
         p_all = _paired(df, method, comparator)
         for (set_label, mode), p in p_all.groupby(["set", "mode"], observed=True):
             parts = [(dom, q) for dom, q in p.groupby("domain", observed=True)] + [("all", p)]
@@ -542,6 +648,6 @@ def compare(df: pd.DataFrame, resamples: int = C.BOOTSTRAP_RESAMPLES, seed: int 
                     continue
                 r = _bootstrap_rows(q, rng, resamples)
                 rows.append({"set": set_label, "method": method, "mode": mode, "domain": dom,
-                             "comparator": comparator, **r, "verdict": verdict(r["kappa_diff"], r["ci_low"], r["ci_high"])})
-    tables["methods_vs_baseline"] = pd.DataFrame(rows)
-    return tables
+                             "comparator": comparator, **r,
+                             "verdict": verdict(r["kappa_diff"], r["ci_low"], r["ci_high"])})
+    return pd.DataFrame(rows)

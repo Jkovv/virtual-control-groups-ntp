@@ -3,9 +3,9 @@
 PYTHON ?= python
 export PYTHONPATH := src
 
-.PHONY: all install data prepare evaluate summarise methods compare notebook test clean
+.PHONY: all install data prepare evaluate summarise methods posthoc compare notebook test clean
 
-all: data prepare evaluate summarise methods compare
+all: data prepare evaluate summarise methods posthoc compare
 
 install:
 	$(PYTHON) -m pip install -r requirements.txt
@@ -24,6 +24,9 @@ summarise:
 
 methods:
 	$(PYTHON) -m vcg.cli methods
+
+posthoc:
+	$(PYTHON) -m vcg.cli posthoc
 
 compare:
 	$(PYTHON) -m vcg.cli compare

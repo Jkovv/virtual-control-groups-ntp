@@ -184,3 +184,11 @@ def test_whole_groups_are_predicted_to_be_worse_than_individual_sampling():
     icc = np.array([0.05, 0.1, 0.3])
     assert (MM.implied_false_positive_rate(icc, sampling="whole_group")
             > MM.implied_false_positive_rate(icc, sampling="individual")).all()
+
+
+def test_half_concurrent_control_uses_only_concurrent_animals():
+    df = _frame(MM.evaluate_half_concurrent(_unit(tau=1.0), "holdout"))
+    assert set(df["method"]) == {"half_concurrent"} and set(df["mode"]) == {"partial"}
+    assert (df["pool_animals"] == 0).all()
+    inc = _frame(MM.evaluate_half_concurrent(_chronic_unit(), "holdout"))
+    assert set(inc["method"]) == {"half_concurrent", "half_concurrent_trend"}

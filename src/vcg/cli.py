@@ -9,9 +9,11 @@ summarise  records -> results/tables/*.csv, results/summary.json, results/figure
 methods    processed tables -> results/tables/method_endpoints.parquet: the
            pre-specified method comparison (docs/analysis_plan.md), one row per
            study/sex/endpoint/method/mode with the draws averaged
+posthoc    post-hoc control analysis, not in the plan: the kept concurrent half
+           alone -> results/tables/method_endpoints_posthoc.parquet
 compare    method_endpoints -> results/tables/methods_*.csv, results/methods_summary.json,
            results/figures/methods_comparison.png
-all        all five steps in order
+all        all six steps in order
 """
 from __future__ import annotations
 
@@ -96,8 +98,21 @@ def step_methods(args: argparse.Namespace) -> None:
     log.info("%d endpoint rows written in %.0f s", len(df), time.time() - t0)
 
 
+def step_posthoc(args: argparse.Namespace) -> None:
+    """Post-hoc control analysis, not in the plan: the kept concurrent half alone."""
+    data = prepare.load_processed(C.PROCESSED_DIR)
+    df = methods.run(data, workers=args.workers, n_draws=args.draws, seed=args.seed, limit=args.limit, posthoc=True)
+    df.to_parquet(C.TABLES_DIR / "method_endpoints_posthoc.parquet", index=False)
+    log.info("%d post-hoc endpoint rows written", len(df))
+
+
 def step_compare(args: argparse.Namespace) -> None:
     df = pd.read_parquet(C.TABLES_DIR / "method_endpoints.parquet")
+    posthoc_path = C.TABLES_DIR / "method_endpoints_posthoc.parquet"
+    if posthoc_path.exists():
+        cats = ["set", "study", "sex", "species", "design", "domain", "endpoint", "method", "mode"]
+        df = pd.concat([df, pd.read_parquet(posthoc_path)], ignore_index=True)
+        df[cats] = df[cats].astype(str).astype("category")
     tables = methods.compare(df, seed=args.seed)
     for name, table in tables.items():
         table.to_csv(C.TABLES_DIR / f"{name}.csv", index=False, float_format="%.4f")
@@ -128,7 +143,7 @@ def step_compare(args: argparse.Namespace) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="vcg", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("step", choices=["prepare", "evaluate", "summarise", "methods", "compare", "all"])
+    ap.add_argument("step", choices=["prepare", "evaluate", "summarise", "methods", "posthoc", "compare", "all"])
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument("--draws", type=int, default=C.N_DRAWS, help="virtual control groups per configuration")
     ap.add_argument("--seed", type=int, default=C.SEED)
@@ -138,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
     steps = {"prepare": step_prepare, "evaluate": step_evaluate, "summarise": step_summarise,
-             "methods": step_methods, "compare": step_compare}
+             "methods": step_methods, "posthoc": step_posthoc, "compare": step_compare}
     for name in (list(steps) if args.step == "all" else [args.step]):
         log.info("== %s", name)
         steps[name](args)

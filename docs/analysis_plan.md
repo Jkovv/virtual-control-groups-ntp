@@ -120,4 +120,13 @@ the cost of missed findings.
 
 ## Deviations
 
-None so far.
+1. **Post-hoc control analysis (added after the pre-specified results were
+   seen).** The robust MAP partial VCG improved kappa in every continuous domain.
+   A partial design changes two things at once: half of the concurrent animals
+   are removed, and something replaces them. To tell whether the gain comes from
+   the borrowed information or only from not adding biased virtual animals, the
+   partial design was also analysed with the kept concurrent half alone
+   (`half_concurrent`: Dunnett, Fisher, poly-3; `half_concurrent_trend`:
+   Cochran-Armitage). It uses separate random streams, so the pre-specified
+   results are unchanged, and it is reported separately and labelled post-hoc.
+   No pre-specified verdict is changed by it.
