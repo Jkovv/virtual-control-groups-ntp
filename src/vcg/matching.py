@@ -89,6 +89,51 @@ def draw_partial(concurrent: np.ndarray, pool_values: np.ndarray, n_virtual: int
     return np.concatenate([keep, rng.choice(pool_values, size=n_virtual, replace=False)])
 
 
+def bw_weights(pool_bw: np.ndarray, target_bw: np.ndarray, window_sd: float = C.BW_WINDOW_SD,
+               min_target: int = C.BW_MIN_TARGET_ANIMALS) -> np.ndarray | None:
+    """Sampling weights that match the target's pre-dosing body weight distribution.
+
+    Following the weighted-sampling approach of Gurjanov et al. (ALTEX 2024), a
+    pool animal's weight is the normal density of its pre-dosing body weight
+    under the target study's pre-dosing distribution (mean and SD of all target
+    animals, before any treatment).  Animals outside +/- ``window_sd`` target SDs,
+    or without a pre-dosing weight, get weight 0.  Returns None when the target
+    has fewer than ``min_target`` pre-dosing weights.
+    """
+    tb = np.asarray(target_bw, dtype=float)
+    tb = tb[np.isfinite(tb)]
+    if tb.size < min_target:
+        return None
+    mu, sd = tb.mean(), tb.std(ddof=1)
+    if not sd > 0:
+        return None
+    z = (np.asarray(pool_bw, dtype=float) - mu) / sd
+    w = np.exp(-0.5 * z**2)
+    return np.where(np.isfinite(z) & (np.abs(z) <= window_sd), w, 0.0)
+
+
+def draw_weighted(weights: np.ndarray, n: int, rng: np.random.Generator) -> np.ndarray:
+    """Indices of ``n`` pool animals drawn without replacement with probability
+    proportional to ``weights``."""
+    return rng.choice(weights.size, size=n, replace=False, p=weights / weights.sum())
+
+
+def draw_whole_groups(group_ids: np.ndarray, n_needed: int, rng: np.random.Generator) -> np.ndarray:
+    """Indices of all animals of randomly ordered whole historical control groups,
+    adding groups until at least ``n_needed`` animals are included.
+
+    Keeping groups intact preserves the within-study structure (shared housing,
+    diet batch, necropsy day, analyser run) that sampling individual animals
+    from many studies averages away.
+    """
+    labels, inverse, counts = np.unique(group_ids, return_inverse=True, return_counts=True)
+    order = rng.permutation(labels.size)
+    take = np.searchsorted(np.cumsum(counts[order]), n_needed) + 1
+    chosen = np.zeros(labels.size, dtype=bool)
+    chosen[order[:take]] = True
+    return np.flatnonzero(chosen[inverse])
+
+
 def describe_pool(controls: pd.DataFrame, mask: np.ndarray) -> dict:
     sub = controls.loc[mask]
     return {"n_animals": int(mask.sum()), "n_studies": int(sub["study"].nunique()),
