@@ -43,6 +43,10 @@ COMPARATOR = {"bw_matched": "baseline", "bw_ancova": "baseline", "whole_group": 
 # information, or only to dropping the virtual animals?
 POSTHOC_PAIRS = [("half_concurrent", "baseline"), ("hierarchical", "half_concurrent"),
                  ("half_concurrent_trend", "baseline_trend"), ("tarone", "half_concurrent_trend")]
+# Comparisons against a reference that shares no animal with the method under
+# test (mode "disjoint"): the comparator is half of the control group on its own.
+DISJOINT_PAIRS = [("baseline", "split_half"), ("hierarchical", "split_half"),
+                  ("baseline_trend", "split_half_trend"), ("tarone", "split_half_trend")]
 SETS = ("development", "holdout")
 
 
@@ -63,6 +67,17 @@ def _row(base: list, method: str, mode: str, sig_ref: bool, sig_draws: np.ndarra
     return base + [method, mode, int(sig_draws.size), int(n_control), int(pool_animals), int(pool_groups),
                    float(sig_ref), float(sig_draws.mean()), float((sig_draws == sig_ref).mean()),
                    float((sig_draws & (not sig_ref)).mean()), float((~sig_draws & sig_ref).mean()), differs]
+
+
+def _row_paired(base: list, method: str, mode: str, sig_ref: np.ndarray, sig_draws: np.ndarray,
+                n_control: int, pool_animals: int = 0, pool_groups: int = 0) -> list:
+    """Like ``_row`` but the reference conclusion changes from draw to draw, as it
+    does when the reference is a randomly chosen half of the concurrent control."""
+    a = np.asarray(sig_draws, dtype=bool)
+    b = np.asarray(sig_ref, dtype=bool)
+    return base + [method, mode, int(a.size), int(n_control), int(pool_animals), int(pool_groups),
+                   float(b.mean()), float(a.mean()), float((a == b).mean()),
+                   float((a & ~b).mean()), float((~a & b).mean()), np.nan]
 
 
 def _rng(unit: E.Unit, *tags: object) -> np.random.Generator:
@@ -428,6 +443,157 @@ def evaluate_half_concurrent(unit: E.Unit, set_label: str) -> list[list]:
 
 
 # ----------------------------------------------------------------------------
+# split-half reliability: the noise ceiling, and comparisons without overlap
+# ----------------------------------------------------------------------------
+
+def evaluate_reliability(unit: E.Unit, set_label: str) -> list[list]:
+    """Split the concurrent control into two disjoint halves A and B and use B as
+    the reference conclusion.  All rows have mode ``disjoint``.
+
+    ``split_half`` compares A with B: two halves of the *same* control group, so
+    the only source of disagreement is sampling noise.  That is the noise
+    ceiling, the agreement a method could reach if it reproduced the concurrent
+    control group perfectly up to sampling.
+
+    The other methods start from the same half A and add information to it, so
+    they are measured against a reference that shares no animal with them:
+
+    * ``baseline``      A plus uniformly sampled historical animals,
+    * ``hierarchical``  A plus the robust MAP prior,
+    * ``baseline_trend``/``tarone``/``split_half_trend`` the same for the
+      neoplasm trend tests.
+
+    Comparing those with ``split_half`` asks whether borrowed information makes
+    half a control group predict the other half better than it does alone.
+    """
+    tgt = unit.target
+    rows: list[list] = []
+    R = unit.n_draws
+    hc = unit.hist_controls
+
+    if not unit.continuous.empty:
+        for (domain, endpoint), d in unit.continuous.groupby(["domain", "endpoint"], sort=False):
+            is_ctrl = d["is_control"].to_numpy(dtype=bool)
+            ctrl = d.loc[is_ctrl, "value"].to_numpy(dtype=float)
+            treated = d.loc[~is_ctrl]
+            doses = [x for x in sorted(treated["dose"].unique()) if (treated["dose"] == x).sum() >= 2]
+            groups = [treated.loc[treated["dose"] == x, "value"].to_numpy(dtype=float) for x in doses]
+            n0 = ctrl.size
+            m = n0 // 2                      # one animal is left out when n0 is odd
+            if m < 3 or not groups:
+                continue
+            rng = _rng(unit, endpoint, "reliability")
+            base = [set_label, tgt.study, tgt.sex, tgt.species, tgt.design, domain, endpoint]
+            splits = [rng.permutation(n0) for _ in range(R)]
+            a_idx = np.stack([s[:m] for s in splits])
+            b_idx = np.stack([s[m:2 * m] for s in splits])
+            half_a, half_b = ctrl[a_idx], ctrl[b_idx]
+            sig_b = (S.dunnett_many(groups, half_b).pvalue < C.ALPHA).any(axis=1)
+            sig_a = (S.dunnett_many(groups, half_a).pvalue < C.ALPHA).any(axis=1)
+            rows.append(_row_paired(base, "split_half", "disjoint", sig_b, sig_a, n0))
+
+            h = hc[hc["endpoint"] == endpoint] if len(hc) else hc
+            if h.empty:
+                continue
+            hv = h["value"].to_numpy(dtype=float)
+            hg = h["study"].to_numpy()
+            n_virt = n0 - m
+            if hv.size >= 2 * n0:
+                controls = np.stack([np.r_[half_a[k], hv[rng.choice(hv.size, n_virt, replace=False)]]
+                                     for k in range(R)])
+                sig = (S.dunnett_many(groups, controls).pvalue < C.ALPHA).any(axis=1)
+                rows.append(_row_paired(base, "baseline", "disjoint", sig_b, sig, n0, hv.size,
+                                        len(np.unique(hg))))
+            hist_groups = [g for g in (hv[hg == s] for s in np.unique(hg)) if g.size >= 2]
+            if len(hist_groups) >= C.MIN_HIST_GROUPS:
+                re, s2_hist = S.historical_random_effects(hist_groups)
+                sig = np.array([(S.robust_map_test(groups, half_a[k], re, s2_hist, C.ROBUST_MAP_WEIGHT,
+                                                   C.HIER_MAX_DF).pvalue < C.ALPHA).any() for k in range(R)])
+                rows.append(_row_paired(base, "hierarchical", "disjoint", sig_b, sig, n0, hv.size,
+                                        len(hist_groups)))
+
+    roster = unit.roster.reset_index(drop=True)
+    if roster.empty or unit.lesions.empty:
+        return rows
+    neoplastic = tgt.design == "chronic"
+    les = unit.lesions[unit.lesions["neoplastic"].eq("Neoplastic") == neoplastic]
+    counts = les.groupby(["tissue", "morphology"])["animal"].nunique()
+    findings = [f for f, n in counts.items() if n >= C.MIN_AFFECTED_FOR_INCIDENCE]
+    is_ctrl = roster["is_control"].to_numpy(dtype=bool)
+    ctrl_idx = np.flatnonzero(is_ctrl)
+    n0 = ctrl_idx.size
+    m = n0 // 2
+    doses = sorted(roster.loc[~is_ctrl, "dose"].unique())
+    dose_rows = [x for x in ((roster["dose"] == v).to_numpy() & ~is_ctrl for v in doses) if x.sum() >= 2]
+    if not findings or m < 3 or not dose_rows:
+        return rows
+    domain = "neoplasm" if neoplastic else "nonneoplastic lesion"
+    mat = E._incidence_matrix(roster, les, findings)
+    t_days = roster["days"].to_numpy(dtype=float)
+    t_max = roster["t_max"].to_numpy(dtype=float)
+    rng = _rng(unit, "incidence", "reliability")
+    splits = [rng.permutation(ctrl_idx) for _ in range(R)]
+    a_sets = [s[:m] for s in splits]
+    b_sets = [s[m:2 * m] for s in splits]
+    scores = np.arange(len(dose_rows) + 1, dtype=float)
+    n_treated = np.array([x.sum() for x in dose_rows], dtype=float)
+
+    hist = unit.hist_roster.reset_index(drop=True)
+    hmat = E._incidence_matrix(hist, unit.hist_lesions, findings) if not hist.empty else None
+    h_days = hist["days"].to_numpy(dtype=float) if not hist.empty else None
+    h_tmax = hist["t_max"].to_numpy(dtype=float) if not hist.empty else None
+    hg = hist["study"].to_numpy() if not hist.empty else None
+    n_hist = 0 if hist.empty else hist.shape[0]
+    n_virt = n0 - m
+    picks = ([rng.choice(n_hist, n_virt, replace=False) for _ in range(R)]
+             if n_hist >= 2 * n0 else None)
+    g_labels, g_inv = (np.unique(hg, return_inverse=True) if n_hist else (np.array([]), None))
+
+    def pairwise_any(aff, c_aff, c_days, c_tmax) -> bool:
+        for x in dose_rows:
+            if neoplastic:
+                _, p = S.poly3_test(aff[x], S.poly_k_weights(t_days[x], aff[x], t_max[x]),
+                                    c_aff, S.poly_k_weights(c_days, c_aff, c_tmax))
+            else:
+                p = S.fisher_exact_2x2(aff[x].sum(), x.sum(), c_aff.sum(), c_aff.size)[0]
+            if p < C.ALPHA:
+                return True
+        return False
+
+    for j, (tissue, morph) in enumerate(findings):
+        aff = mat[:, j]
+        base = [set_label, tgt.study, tgt.sex, tgt.species, tgt.design, domain, f"{tissue}: {morph}"]
+        sig_b = np.array([pairwise_any(aff, aff[b], t_days[b], t_max[b]) for b in b_sets])
+        sig_a = np.array([pairwise_any(aff, aff[a], t_days[a], t_max[a]) for a in a_sets])
+        rows.append(_row_paired(base, "split_half", "disjoint", sig_b, sig_a, n0))
+        if picks is not None:
+            sig = np.array([pairwise_any(aff, np.r_[aff[a], hmat[p, j]], np.r_[t_days[a], h_days[p]],
+                                         np.r_[t_max[a], h_tmax[p]]) for a, p in zip(a_sets, picks)])
+            rows.append(_row_paired(base, "baseline", "disjoint", sig_b, sig, n0, n_hist, g_labels.size))
+        if not neoplastic:
+            continue
+        x_t = np.array([aff[x].sum() for x in dose_rows], dtype=float)
+
+        def trend(x_c: float, n_c: float, a: float = 0.0, b: float = 0.0) -> bool:
+            return S.tarone_trend(np.r_[x_c, x_t], np.r_[n_c, n_treated], scores, a, b)[1] < C.ALPHA
+
+        sig_b_tr = np.array([trend(aff[b].sum(), m) for b in b_sets])
+        sig_a_tr = np.array([trend(aff[a].sum(), m) for a in a_sets])
+        rows.append(_row_paired(base, "split_half_trend", "disjoint", sig_b_tr, sig_a_tr, n0))
+        if picks is not None:
+            sig = np.array([trend(aff[a].sum() + hmat[p, j].sum(), m + p.size)
+                            for a, p in zip(a_sets, picks)])
+            rows.append(_row_paired(base, "baseline_trend", "disjoint", sig_b_tr, sig, n0, n_hist, g_labels.size))
+        if g_labels.size >= C.MIN_HIST_GROUPS:
+            x_h = np.bincount(g_inv, weights=hmat[:, j].astype(float), minlength=g_labels.size)
+            n_h = np.bincount(g_inv, minlength=g_labels.size).astype(float)
+            prior_a, prior_b = S.fit_beta_binomial(x_h, n_h)
+            sig = np.array([trend(aff[a].sum(), m, prior_a, prior_b) for a in a_sets])
+            rows.append(_row_paired(base, "tarone", "disjoint", sig_b_tr, sig, n0, n_hist, g_labels.size))
+    return rows
+
+
+# ----------------------------------------------------------------------------
 # orchestration
 # ----------------------------------------------------------------------------
 
@@ -464,13 +630,14 @@ def _run_unit(item: tuple[E.Unit, str]) -> list[list]:
 
 def _run_unit_posthoc(item: tuple[E.Unit, str]) -> list[list]:
     unit, label = item
-    return evaluate_half_concurrent(unit, label)
+    return evaluate_half_concurrent(unit, label) + evaluate_reliability(unit, label)
 
 
 def run(data: dict[str, pd.DataFrame], workers: int = 1, n_draws: int = C.N_DRAWS, seed: int = C.SEED,
         limit: int | None = None, posthoc: bool = False) -> pd.DataFrame:
-    """Evaluate the pre-specified methods or, with ``posthoc``, only the
-    half-concurrent control analysis."""
+    """Evaluate the pre-specified methods or, with ``posthoc``, the control
+    analyses added afterwards: the half-concurrent comparison and the split-half
+    reliability with its disjoint-reference comparisons."""
     worker = _run_unit_posthoc if posthoc else _run_unit
     items = build_units(data, n_draws=n_draws, seed=seed, limit=limit)
     log.info("method comparison: %d study/sex units (%d held-out) with %d workers", len(items),
@@ -628,11 +795,19 @@ def compare(df: pd.DataFrame, resamples: int = C.BOOTSTRAP_RESAMPLES, seed: int 
         "methods_by_domain": metrics(df, ["set", "method", "mode", "domain"]),
         "methods_overall": metrics(df[df["method"] != "baseline_trend"], ["set", "method", "mode"]),
     }
-    tables["methods_vs_baseline"] = _comparisons(df, list(COMPARATOR.items()), rng, resamples)
+    tables["methods_vs_baseline"] = _comparisons(df[df["mode"] != "disjoint"],
+                                                 list(COMPARATOR.items()), rng, resamples)
     if df["method"].isin(["half_concurrent", "half_concurrent_trend"]).any():
         posthoc = _comparisons(df[df["mode"] == "partial"], POSTHOC_PAIRS, rng, resamples)
         posthoc.insert(0, "analysis", "post-hoc")
         tables["posthoc_half_concurrent"] = posthoc
+    disjoint = df[df["mode"] == "disjoint"]
+    if len(disjoint):
+        tables["reliability_ceiling"] = metrics(disjoint[disjoint["method"].isin(["split_half", "split_half_trend"])],
+                                                ["set", "method", "domain"])
+        vs = _comparisons(disjoint, DISJOINT_PAIRS, rng, resamples)
+        vs.insert(0, "analysis", "disjoint reference")
+        tables["methods_vs_split_half"] = vs
     return tables
 
 

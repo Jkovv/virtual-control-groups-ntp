@@ -192,3 +192,53 @@ def test_half_concurrent_control_uses_only_concurrent_animals():
     assert (df["pool_animals"] == 0).all()
     inc = _frame(MM.evaluate_half_concurrent(_chronic_unit(), "holdout"))
     assert set(inc["method"]) == {"half_concurrent", "half_concurrent_trend"}
+
+
+def test_split_half_reference_is_disjoint_from_the_tested_half():
+    """The two halves must never share an animal: with a control group whose
+    values are all distinct, the recorded halves cannot overlap."""
+    rng = np.random.default_rng(0)
+    unit = _unit(seed=3, n_draws=30)
+    ctrl = unit.continuous.loc[unit.continuous["is_control"], "value"]
+    unit.continuous.loc[ctrl.index, "value"] = np.arange(len(ctrl)) * 100.0   # unique, far apart
+    df = _frame(MM.evaluate_reliability(unit, "holdout"))
+    assert "split_half" in set(df["method"])
+    assert set(df["mode"]) == {"disjoint"}
+    row = df[df["method"] == "split_half"].iloc[0]
+    assert row["n_draws"] == 30 and row["pool_animals"] == 0
+    assert (row["agree"] + row["fp"] + row["fn"]) == pytest.approx(1.0)
+
+
+def test_split_half_is_a_ceiling_not_a_perfect_score():
+    """Two halves of the same control group disagree sometimes, and they agree
+    better than a control borrowed from other studies does."""
+    units = [_unit(seed=s, tau=1.0, effect=0.35) for s in range(30)]
+    rel = pd.concat([_frame(MM.evaluate_reliability(u, "holdout")) for u in units], ignore_index=True)
+    pre = pd.concat([_frame(MM.evaluate_continuous(u, "holdout")) for u in units], ignore_index=True)
+    ceiling = rel[rel["method"] == "split_half"]["agree"].mean()
+    borrowed = pre[(pre["method"] == "baseline") & (pre["mode"] == "vcg")]["agree"].mean()
+    assert 0.5 < ceiling < 1.0
+    assert ceiling > borrowed
+
+
+def test_disjoint_mode_methods_share_the_reference():
+    df = _frame(MM.evaluate_reliability(_unit(tau=1.0), "holdout"))
+    got = set(df["method"])
+    assert {"split_half", "baseline", "hierarchical"} <= got
+    # every method in a unit/endpoint is scored against the same reference draws
+    assert df.groupby("endpoint")["sig_conc"].nunique().eq(1).all()
+
+
+def test_reliability_covers_incidence_and_trend_tests():
+    df = _frame(MM.evaluate_reliability(_chronic_unit(), "holdout"))
+    got = set(df["method"])
+    assert {"split_half", "split_half_trend", "baseline", "baseline_trend", "tarone"} <= got
+    assert set(df["domain"]) == {"neoplasm"}
+
+
+def test_reliability_needs_at_least_six_control_animals():
+    unit = _unit()
+    keep = unit.continuous[~unit.continuous["is_control"]]
+    small = unit.continuous[unit.continuous["is_control"]].head(5)
+    unit.continuous = pd.concat([small, keep], ignore_index=True)
+    assert MM.evaluate_reliability(unit, "holdout") == []

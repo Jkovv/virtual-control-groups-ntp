@@ -120,6 +120,19 @@ the cost of missed findings.
 
 ## Deviations
 
+2. **Split-half reliability benchmark and a disjoint reference (added after the
+   pre-specified results were seen).** Two further problems with the post-hoc
+   comparison above became clear once it was run. First, the kept concurrent
+   half is a subset of the reference control group, so its agreement with that
+   reference is inflated by construction: the two analyses share animals.
+   Second, nothing in the analysis said how much agreement is attainable at all,
+   since two control groups never agree perfectly. Both are addressed by
+   splitting the concurrent control into two disjoint halves A and B (20 draws)
+   and using B as the reference. ``split_half`` (A against B) measures the noise
+   ceiling, and the partial methods built on A are scored against B, which shares
+   no animal with them. These rows carry the mode ``disjoint``, use their own
+   random streams, and leave the pre-specified results unchanged.
+
 1. **Post-hoc control analysis (added after the pre-specified results were
    seen).** The robust MAP partial VCG improved kappa in every continuous domain.
    A partial design changes two things at once: half of the concurrent animals
@@ -129,4 +142,5 @@ the cost of missed findings.
    (`half_concurrent`: Dunnett, Fisher, poly-3; `half_concurrent_trend`:
    Cochran-Armitage). It uses separate random streams, so the pre-specified
    results are unchanged, and it is reported separately and labelled post-hoc.
-   No pre-specified verdict is changed by it.
+   No pre-specified verdict is changed by it, but see deviation 2: its headline
+   comparison shares animals between the method and its reference.
