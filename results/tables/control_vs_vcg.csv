@@ -1,0 +1,26 @@
+level,domain,share_concurrent_differs_from_vcg
+L0 design,clin_chem,0.3779
+L0 design,hematology,0.3182
+L0 design,inlife_bw,0.4676
+L0 design,organ_weight,0.2776
+L0 design,terminal_bw,0.4045
+L1 +route,clin_chem,0.3942
+L1 +route,hematology,0.3226
+L1 +route,inlife_bw,0.4455
+L1 +route,organ_weight,0.2664
+L1 +route,terminal_bw,0.3576
+L2 +vehicle,clin_chem,0.4211
+L2 +vehicle,hematology,0.3520
+L2 +vehicle,inlife_bw,0.4281
+L2 +vehicle,organ_weight,0.2683
+L2 +vehicle,terminal_bw,0.3429
+L3 +laboratory,clin_chem,0.4019
+L3 +laboratory,hematology,0.3443
+L3 +laboratory,inlife_bw,0.3925
+L3 +laboratory,organ_weight,0.2549
+L3 +laboratory,terminal_bw,0.2866
+L4 +period (3y),clin_chem,0.3290
+L4 +period (3y),hematology,0.3408
+L4 +period (3y),inlife_bw,0.3251
+L4 +period (3y),organ_weight,0.2194
+L4 +period (3y),terminal_bw,0.2140

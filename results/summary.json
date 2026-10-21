@@ -1,0 +1,75 @@
+{
+  "headline_level": "L3 +laboratory",
+  "agreement": 0.7734,
+  "false_positive": 0.1723,
+  "false_negative": 0.0544,
+  "fp_given_conc_nonsig": 0.2365,
+  "fn_given_conc_sig": 0.2002,
+  "sensitivity": 0.7998,
+  "specificity": 0.7635,
+  "kappa": 0.4958,
+  "trivial_agreement_never_significant": 0.7285,
+  "concurrent_significant_rate": 0.2715,
+  "vcg_significant_rate": 0.3894,
+  "n_endpoint_units": 26118,
+  "n_studies": 1120,
+  "n_study_sex_units": 1591,
+  "n_records": 27474820,
+  "n_draws": 20,
+  "studies_in_processed_data": 1985,
+  "by_level": {
+    "L0 design": {
+      "agreement": 0.7284,
+      "kappa": 0.4282,
+      "coverage_units": 35729
+    },
+    "L1 +route": {
+      "agreement": 0.7402,
+      "kappa": 0.4462,
+      "coverage_units": 35397
+    },
+    "L2 +vehicle": {
+      "agreement": 0.7571,
+      "kappa": 0.4728,
+      "coverage_units": 32809
+    },
+    "L3 +laboratory": {
+      "agreement": 0.7734,
+      "kappa": 0.4958,
+      "coverage_units": 26118
+    },
+    "L4 +period (3y)": {
+      "agreement": 0.7938,
+      "kappa": 0.5348,
+      "coverage_units": 21464
+    }
+  },
+  "partial_by_level": {
+    "L0 design": {
+      "agreement": 0.8347,
+      "kappa": 0.6172
+    },
+    "L1 +route": {
+      "agreement": 0.8431,
+      "kappa": 0.6339
+    },
+    "L2 +vehicle": {
+      "agreement": 0.849,
+      "kappa": 0.6446
+    },
+    "L3 +laboratory": {
+      "agreement": 0.8609,
+      "kappa": 0.6696
+    },
+    "L4 +period (3y)": {
+      "agreement": 0.8709,
+      "kappa": 0.6933
+    }
+  },
+  "figures": [
+    "results/figures/headline_agreement.png",
+    "results/figures/agreement_vs_strictness.png",
+    "results/figures/agreement_vs_time_gap.png",
+    "results/figures/endpoint_suitability.png"
+  ]
+}

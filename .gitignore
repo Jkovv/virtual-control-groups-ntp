@@ -1,0 +1,25 @@
+# Raw and processed NTP data are never committed (see data/README.md)
+data/raw/
+data/processed/
+data/*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# large intermediate result (127 MB); rebuilt by `make evaluate`
+results/tables/records.parquet
