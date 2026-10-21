@@ -2,11 +2,15 @@
 produced by :func:`vcg.evaluation.summarise` and write PNG files."""
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import matplotlib
 
-matplotlib.use("Agg")
+# Headless by default, but never override a backend the caller already set up:
+# importing this module from a notebook must not disable inline figures.
+if "matplotlib.pyplot" not in sys.modules:
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
